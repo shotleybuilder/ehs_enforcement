@@ -1,12 +1,14 @@
-defmodule Legl.Countries.Uk.LeglEnforcement.HseNotices do
+defmodule EhsEnforcement.Agencies.Hse.Notices do
   @moduledoc """
-  This module is responsible for fetching and processing HSE notices.
+  HSE notices processing module.
+  Handles fetching, processing, and storing HSE enforcement notice data.
   """
   require Logger
-  alias Legl.Countries.Uk.LeglEnforcement.Hse
-  alias Legl.Countries.Uk.LeglEnforcement.HseBreaches
-  alias Legl.Services.Hse.ClientNotices
-  alias Legl.Services.Airtable.Post
+  
+  alias EhsEnforcement.Agencies.Hse.Common
+  alias EhsEnforcement.Agencies.Hse.Breaches
+  alias EhsEnforcement.Agencies.Hse.NoticeScraper
+  alias EhsEnforcement.Integrations.Airtable.Post
 
   defmodule HSENotice do
     @derive Jason.Encoder
@@ -54,7 +56,7 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseNotices do
   def api_get_hse_notices(opts) do
     opts = Enum.into(opts, @default_opts)
 
-    pages = Hse.pages_picker()
+    pages = Common.pages_picker()
     # country = country_picker()
     IO.puts("Pages: #{inspect(pages)}")
 
@@ -63,7 +65,7 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseNotices do
         Enum.each(pages, fn page ->
           notices =
             get_hse_notices(~s/#{page}/, opts)
-            |> HseBreaches.enum_breaches()
+            |> Breaches.enum_breaches()
 
           # Enum.each(notices, &post_hse_notice/1)
 
@@ -76,7 +78,7 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseNotices do
       _ ->
         notices =
           get_hse_notices(pages, opts)
-          |> HseBreaches.enum_breaches()
+          |> Breaches.enum_breaches()
 
         Enum.each(notices, fn notice ->
           Post.post(@base, @table, notice)
@@ -87,7 +89,7 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseNotices do
   defp get_hse_notices(page, opts) when is_binary(page) do
     IO.puts("PAGE: #{page}")
     # GET #1 - basic notice details
-    notices = ClientNotices.get_hse_notices(page_number: page, country: opts.country)
+    notices = NoticeScraper.get_hse_notices(page_number: page, country: opts.country)
 
     notices =
       Enum.map(
@@ -96,8 +98,8 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseNotices do
           %HSENotice{
             regulator: "Health and Safety Executive",
             offender_country: opts.country,
-            offender_business_type: Hse.offender_business_type(&1.offender_name),
-            offender_index: Hse.offender_index(&1.offender_name)
+            offender_business_type: Common.offender_business_type(&1.offender_name),
+            offender_index: Common.offender_index(&1.offender_name)
           },
           &1
         )
@@ -111,8 +113,8 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseNotices do
             :regulator_url,
             ~s|https://resources.hse.gov.uk/notices/notices/notice_details.asp?SF=CN&SV=#{regulator_id}|
           )
-          |> Map.merge(ClientNotices.get_notice_details(regulator_id))
-          |> Map.merge(ClientNotices.get_notice_breaches(regulator_id))
+          |> Map.merge(NoticeScraper.get_notice_details(regulator_id))
+          |> Map.merge(NoticeScraper.get_notice_breaches(regulator_id))
           |> (&[&1 | acc]).()
 
         _, acc ->
@@ -131,9 +133,9 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseNotices do
 
     if opts.filesave? == true,
       do:
-        Legl.Utility.save_json(
+        EhsEnforcement.Utility.save_json(
           notices,
-          Path.expand("lib/legl/countries/uk/legl_enforcement/hse_notices.json")
+          Path.expand("lib/ehs_enforcement/agencies/hse/hse_notices.json")
         )
 
     notices

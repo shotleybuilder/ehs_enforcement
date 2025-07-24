@@ -1,6 +1,6 @@
-defmodule Legl.Services.Airtable.AtPatch do
-  alias Legl.Services.Airtable.Client
-  alias Legl.Services.Airtable.Url
+defmodule EhsEnforcement.Integrations.Airtable.AtPatch do
+  alias EhsEnforcement.Integrations.Airtable.Client
+  alias EhsEnforcement.Integrations.Airtable.Url
 
   @spec patch_records(
           any(),

@@ -1,10 +1,10 @@
-defmodule Legl.Services.Airtable.Records do
+defmodule EhsEnforcement.Integrations.Airtable.Records do
   @moduledoc """
   Functions for working on the records retrieved from Airtable
   """
   # require Logger
-  alias Legl.Services.Airtable.Client
-  alias Legl.Services.Airtable.Url
+  alias EhsEnforcement.Integrations.Airtable.Client
+  alias EhsEnforcement.Integrations.Airtable.Url
 
   def get_bases() do
     # {:ok, records} =

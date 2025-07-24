@@ -1,6 +1,6 @@
-defmodule Legl.Services.Airtable.AtBasesTables do
-  alias Legl.Services.Airtable.AtBases
-  alias Legl.Services.Airtable.AtTables
+defmodule EhsEnforcement.Integrations.Airtable.AtBasesTables do
+  alias EhsEnforcement.Integrations.Airtable.AtBases
+  alias EhsEnforcement.Integrations.Airtable.AtTables
 
   @spec get_base_table_id(binary(), binary()) :: {:ok, {binary(), binary()}}
   def get_base_table_id(base_name, table_name \\ "uk") do

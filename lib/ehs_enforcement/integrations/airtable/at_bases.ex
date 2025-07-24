@@ -1,4 +1,4 @@
-defmodule Legl.Services.Airtable.AtBases do
+defmodule EhsEnforcement.Integrations.Airtable.AtBases do
   @doc """
     Returns the Airtable Base ID
     If the real Base ID is used then this is simply returned after checking
@@ -75,8 +75,8 @@ defmodule Legl.Services.Airtable.AtBases do
     }
   end
 
-  @hs_bases Legl.Countries.Uk.LeglRegister.Models.hs_bases()
-  @e_bases Legl.Countries.Uk.LeglRegister.Models.e_bases()
+  @hs_bases EhsEnforcement.Legislation.Models.hs_bases()
+  @e_bases EhsEnforcement.Legislation.Models.e_bases()
   @bases @hs_bases ++ @e_bases
 
   def base_map do

@@ -1,13 +1,13 @@
-defmodule Legl.Services.Hse.ClientNotices do
+defmodule EhsEnforcement.Agencies.Hse.NoticeScraper do
   @moduledoc """
-  This module provides functions for interacting with the HSE (Health and Safety Executive) notices and breaches API.
-
+  HSE notice scraper module.
+  Handles scraping of HSE enforcement notice data from the HSE website.
+  
   The `get_hse_notices/2` function retrieves a list of HSE notices based on the specified page number and country.
 
   The `get_notice_details/1` function retrieves the details of a specific HSE notice based on the notice number.
 
   The `get_notice_breaches/1` function retrieves the breaches associated with a specific HSE notice based on the notice number.
-
   """
 
   def get_hse_notices(page_number: page_number, country: country) do
@@ -84,7 +84,7 @@ defmodule Legl.Services.Hse.ClientNotices do
             regulator_id: String.trim(notice_number),
             offender_name: String.trim(recipients_name),
             offence_action_type: String.trim(notice_type),
-            offence_action_date: Legl.Utility.iso_date(issue_date),
+            offence_action_date: EhsEnforcement.Utility.iso_date(issue_date),
             offender_local_authority: String.trim(local_authority),
             offender_sic: String.trim(sic)
           }
@@ -108,7 +108,7 @@ defmodule Legl.Services.Hse.ClientNotices do
         Map.put(
           acc,
           :regulator_function,
-          Legl.Utility.upcase_first_from_upcase_phrase(regulator_function)
+          EhsEnforcement.Utility.upcase_first_from_upcase_phrase(regulator_function)
         )
 
       [
@@ -119,10 +119,10 @@ defmodule Legl.Services.Hse.ClientNotices do
       ],
       acc ->
         acc
-        |> Map.put(:offence_compliance_date, Legl.Utility.iso_date(compliance_date))
+        |> Map.put(:offence_compliance_date, EhsEnforcement.Utility.iso_date(compliance_date))
         |> Map.put(
           :offence_revised_compliance_date,
-          Legl.Utility.iso_date(revised_compliance_date)
+          EhsEnforcement.Utility.iso_date(revised_compliance_date)
         )
 
       [
@@ -132,7 +132,7 @@ defmodule Legl.Services.Hse.ClientNotices do
         {"td", _, _}
       ],
       acc ->
-        Map.put(acc, :offence_compliance_date, Legl.Utility.iso_date(compliance_date))
+        Map.put(acc, :offence_compliance_date, EhsEnforcement.Utility.iso_date(compliance_date))
 
       [
         {"td", _, ["Description"]},

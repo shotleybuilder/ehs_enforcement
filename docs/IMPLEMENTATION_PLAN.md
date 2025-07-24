@@ -1,6 +1,6 @@
 # EHS Enforcement App - Implementation Plan
 
-**Status**: Phase 1 Complete ✅
+**Status**: Phase 2 Complete ✅ - Architecture Fully Reorganized
 **Last Updated**: 2025-07-24
 
 ## Executive Summary
@@ -20,36 +20,72 @@ Extract the `legl_enforcement` functionality into a standalone Phoenix LiveView 
 - [x] Created new Phoenix LiveView application with Ash dependencies
 - [x] Merged extracted code into new app preserving git history
 
-### 🚧 Phase 2: Service Integration (In Progress)
-- [ ] Install dependencies (`mix deps.get`)
-- [ ] Refactor module names from `Legl.*` to `EhsEnforcement.*`
-- [ ] Setup PostgreSQL database schema
+### ✅ Phase 2: Service Integration (Complete - 2025-07-24)
+- [x] Install dependencies (`mix deps.get`)
+- [x] Refactor module names from `Legl.*` to `EhsEnforcement.*`
+- [x] Created new directory structure (`agencies/hse/`, `integrations/airtable/`)
+- [x] Refactored HSE enforcement modules:
+  - `Legl.Countries.Uk.LeglEnforcement.Hse` → `EhsEnforcement.Agencies.Hse.Common`
+  - `Legl.Countries.Uk.LeglEnforcement.HseCases` → `EhsEnforcement.Agencies.Hse.Cases`
+  - `Legl.Countries.Uk.LeglEnforcement.HseNotices` → `EhsEnforcement.Agencies.Hse.Notices`
+  - `Legl.Countries.Uk.LeglEnforcement.HseBreaches` → `EhsEnforcement.Agencies.Hse.Breaches`
+- [x] Refactored HSE service clients:
+  - `Legl.Services.Hse.ClientCases` → `EhsEnforcement.Agencies.Hse.CaseScraper`
+  - `Legl.Services.Hse.ClientNotices` → `EhsEnforcement.Agencies.Hse.NoticeScraper`
+- [x] Refactored Airtable services to `EhsEnforcement.Integrations.Airtable.*`
+- [x] Added missing dependency modules (Utility, TypeCode, LegalRegister, Models, etc.)
+- [x] **Namespace Reorganization**: Cleaned up donor project echoes
+  - `EhsEnforcement.Countries.Uk.LeglRegister.*` → `EhsEnforcement.Legislation.*`
+  - `EhsEnforcement.Countries.Uk.Article.Taxa.LATTaxa` → `EhsEnforcement.Legislation.Taxa.LATTaxa`
+  - Added complete Airtable integration modules (Endpoint, Headers, Url, AtTables, AtPatch, etc.)
+  - Added Floki dependency for HTML parsing in scrapers
+- [x] Project compiles successfully with new architecture
+- [x] All module references updated and warnings resolved
+
+### 🚧 Phase 3: LiveView UI (Ready to Start)
+- [ ] Setup PostgreSQL database schema  
 - [ ] Implement Airtable-to-PostgreSQL sync
 - [ ] Add configuration management
 - [ ] Implement error handling and logging
-
-### 📋 Phase 3: LiveView UI (Pending)
+- [ ] Create basic LiveView dashboard
+- [ ] Create case management interface
+- [ ] Create notice management interface
+- [ ] Add search and filter capabilities
+- [ ] Implement sync status monitoring
 ### 📋 Phase 4: Multi-Agency Support (Pending)
 ### 📋 Phase 5: Advanced Features (Pending)
 ### 📋 Phase 6: API and Integration (Pending)
 ### 📋 Phase 7: Production Ready (Pending)
 
-## Current Architecture Analysis
+## Current Architecture Analysis (Post-Refactor)
 
-### Module Structure
-- **Core Modules**: 
-  - `Legl.Countries.Uk.LeglEnforcement.Hse` - Common utilities
-  - `Legl.Countries.Uk.LeglEnforcement.HseCases` - Court case processing
-  - `Legl.Countries.Uk.LeglEnforcement.HseNotices` - Notice processing
-  - `Legl.Countries.Uk.LeglEnforcement.HseBreaches` - Breach parsing and linking
+### Module Structure ✅ REFACTORED
+- **HSE Agency Modules**: 
+  - `EhsEnforcement.Agencies.Hse.Common` - Common utilities (pages_picker, business_type classification)
+  - `EhsEnforcement.Agencies.Hse.Cases` - Court case processing and management
+  - `EhsEnforcement.Agencies.Hse.Notices` - Notice processing and management  
+  - `EhsEnforcement.Agencies.Hse.Breaches` - Breach parsing and legislation linking
+  - `EhsEnforcement.Agencies.Hse.CaseScraper` - HSE website case data scraping
+  - `EhsEnforcement.Agencies.Hse.NoticeScraper` - HSE website notice data scraping
 
-### Dependencies
-- **External Services**:
-  - HSE website scraping (`Legl.Services.Hse.ClientCases/ClientNotices`)
-  - Airtable API (`Legl.Services.Airtable.*`)
-- **Internal Dependencies**:
-  - `Legl.Countries.Uk.LeglRegister.TypeCode` - For legislation type classification
-  - `Legl.Utility` - JSON saving functionality
+### Integration Services ✅ REFACTORED
+- **Airtable Integration**:
+  - `EhsEnforcement.Integrations.Airtable.*` - Complete Airtable API client suite
+  - Includes Get, Post, Patch, Client, Headers, Endpoint, Url modules
+
+### Support Modules ✅ REORGANIZED AND ADDED
+- **Core Dependencies**:
+  - `EhsEnforcement.Utility` - JSON saving, date processing, string utilities
+  - `EhsEnforcement.Legislation.TypeCode` - Legislation type classification (reorganized)
+  - `EhsEnforcement.Legislation.{LegalRegister, Models}` - Data structures (reorganized)
+  - `EhsEnforcement.Legislation.Taxa.LATTaxa` - Article taxonomy processing (reorganized)
+  - `EhsEnforcement.Legislation.Taxa.Options` - Taxa processing options
+  - `UK.{Act, Regulation}` - UK legislation data structures
+- **Airtable Integration (Complete Suite)**:
+  - `EhsEnforcement.Integrations.Airtable.Endpoint` - API endpoint configuration
+  - `EhsEnforcement.Integrations.Airtable.Headers` - Authentication headers
+  - `EhsEnforcement.Integrations.Airtable.Url` - URL building utilities
+  - `EhsEnforcement.Integrations.Airtable.{AtTables, AtBasesLegl, AtPatch}` - Base/table management
 
 ## Proposed Architecture
 

@@ -1,4 +1,4 @@
-defmodule Legl.Services.Airtable.Endpoint do
+defmodule EhsEnforcement.Integrations.Airtable.Endpoint do
   @endpoint "https://api.airtable.com/v0"
 
   def base_url(), do: @endpoint

@@ -1,14 +1,15 @@
-defmodule Legl.Countries.Uk.LeglEnforcement.HseCases do
+defmodule EhsEnforcement.Agencies.Hse.Cases do
   @moduledoc """
-
+  HSE court cases processing module.
+  Handles fetching, processing, and storing HSE court case data.
   """
 
-  alias Legl.Countries.Uk.LeglEnforcement.Hse
-  alias Legl.Countries.Uk.LeglEnforcement.HseBreaches
-  alias Legl.Services.Hse.ClientCases
-  alias Legl.Services.Airtable.Get
-  alias Legl.Services.Airtable.Patch
-  alias Legl.Services.Airtable.Post
+  alias EhsEnforcement.Agencies.Hse.Common
+  alias EhsEnforcement.Agencies.Hse.Breaches
+  alias EhsEnforcement.Agencies.Hse.CaseScraper
+  alias EhsEnforcement.Integrations.Airtable.Get
+  alias EhsEnforcement.Integrations.Airtable.Patch
+  alias EhsEnforcement.Integrations.Airtable.Post
 
   defmodule HSECase do
     @derive Jason.Encoder
@@ -56,7 +57,7 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseCases do
 
     Enum.each(String.split(id, ","), fn id ->
       get_hse_cases(%{id: id}, opts)
-      |> HseBreaches.enum_breaches()
+      |> Breaches.enum_breaches()
       |> List.first()
       |> save_hse_case()
     end)
@@ -65,7 +66,7 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseCases do
   def api_get_hse_cases(opts \\ []) do
     opts = Enum.into(opts, @default_opts)
 
-    pages = Hse.pages_picker()
+    pages = Common.pages_picker()
     # country = country_picker()
     IO.puts("Pages: #{inspect(pages)}")
 
@@ -76,7 +77,7 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseCases do
 
           cases =
             get_hse_cases(%{page: ~s/#{page}/}, opts)
-            |> HseBreaches.enum_breaches()
+            |> Breaches.enum_breaches()
 
           Post.post(@base, @table, cases)
         end)
@@ -89,7 +90,7 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseCases do
 
         cases =
           get_hse_cases(%{page: page}, opts)
-          |> HseBreaches.enum_breaches()
+          |> Breaches.enum_breaches()
 
         Enum.each(cases, fn kase ->
           save_hse_case(kase)
@@ -98,7 +99,7 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseCases do
   end
 
   defp get_hse_cases(page, opts) do
-    cases = ClientCases.get_hse_cases(page, opts)
+    cases = CaseScraper.get_hse_cases(page, opts)
 
     cases =
       Enum.map(
@@ -107,8 +108,8 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseCases do
           %HSECase{
             regulator: "Health and Safety Executive",
             # offender_country: opts.country,
-            offender_business_type: Hse.offender_business_type(&1.offender_name),
-            offender_index: Hse.offender_index(&1.offender_name),
+            offender_business_type: Common.offender_business_type(&1.offender_name),
+            offender_index: Common.offender_index(&1.offender_name),
             offence_action_type: "Court Case"
           },
           &1
@@ -122,8 +123,8 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseCases do
           :regulator_url,
           ~s|https://resources.hse.gov.uk/#{opts.database}/case/case_details.asp?SF=CN&SV=#{regulator_id}|
         )
-        |> Map.merge(ClientCases.get_case_details(regulator_id))
-        # |> Map.merge(ClientCases.get_case_breaches(regulator_id))
+        |> Map.merge(CaseScraper.get_case_details(regulator_id))
+        # |> Map.merge(CaseScraper.get_case_breaches(regulator_id))
         |> (&[&1 | acc]).()
 
       _, acc ->

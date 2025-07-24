@@ -1,9 +1,12 @@
-defmodule Legl.Countries.Uk.LeglEnforcement.HseBreaches do
+defmodule EhsEnforcement.Agencies.Hse.Breaches do
   @moduledoc """
-  This module is responsible for fetching and processing HSE breaches.
+  HSE breaches processing module.
+  Handles parsing and linking of HSE breach data to legislation records.
   """
-  alias Legl.Countries.Uk.LeglRegister.TypeCode
-  alias Legl.Services.Airtable, as: AT
+  # TODO: This module has dependencies on Legl.Countries.Uk.LeglRegister.TypeCode
+  # and Legl.Services.Airtable modules that need to be updated
+  alias EhsEnforcement.Legislation.TypeCode
+  alias EhsEnforcement.Integrations.Airtable, as: AT
 
   @lrt %{
     "health and safety at work act 1974" =>
@@ -363,9 +366,9 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseBreaches do
       view: view
     }
 
-    base_url = Legl.Services.Airtable.Endpoint.base_url()
+    base_url = EhsEnforcement.Integrations.Airtable.Endpoint.base_url()
     {:ok, url} = AT.Url.url(base, table, params)
-    headers = Legl.Services.Airtable.Headers.headers()
+    headers = EhsEnforcement.Integrations.Airtable.Headers.headers()
 
     req_opts = [
       {:base_url, base_url},

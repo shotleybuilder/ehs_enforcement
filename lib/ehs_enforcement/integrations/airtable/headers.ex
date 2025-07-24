@@ -1,4 +1,4 @@
-defmodule Legl.Services.Airtable.Headers do
+defmodule EhsEnforcement.Integrations.Airtable.Headers do
   def headers() do
     [
       {:accept, "application/json"},

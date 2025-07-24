@@ -1,6 +1,6 @@
-defmodule Legl.Services.Airtable.AtPost do
-  alias Legl.Services.Airtable.Client
-  alias Legl.Services.Airtable.Url
+defmodule EhsEnforcement.Integrations.Airtable.AtPost do
+  alias EhsEnforcement.Integrations.Airtable.Client
+  alias EhsEnforcement.Integrations.Airtable.Url
 
   def post_records(body, headers, params) do
     with(

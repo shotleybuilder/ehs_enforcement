@@ -1,4 +1,4 @@
-defmodule Legl.Services.Airtable.AirtableParams do
+defmodule EhsEnforcement.Integrations.Airtable.AirtableParams do
   defstruct [
     :base,
     :table,
@@ -12,9 +12,9 @@ defmodule Legl.Services.Airtable.AirtableParams do
   # implied default value of nil
 
   alias __MODULE__ # so we can use the struct here
-  import Legl.Services.Airtable.AtFields
-  import Legl.Services.Airtable.AtFormulas
-  import Legl.Services.Airtable.AtViews
+  import EhsEnforcement.Integrations.Airtable.AtFields
+  import EhsEnforcement.Integrations.Airtable.AtFormulas
+  import EhsEnforcement.Integrations.Airtable.AtViews
 
 
   def params_validation(%{"media" => media})
@@ -26,7 +26,7 @@ defmodule Legl.Services.Airtable.AirtableParams do
     cond do
 
       Map.has_key?(params, "base_name") == true ->
-        case Legl.Services.Airtable.AtBases.get_base_id(params["base_name"]) do
+        case EhsEnforcement.Integrations.Airtable.AtBasesLegl.get_base_id(params["base_name"]) do
           {:ok, base_id} ->
             Map.put(params, "base", base_id)
             |> Map.pop("base_name")
@@ -46,7 +46,7 @@ defmodule Legl.Services.Airtable.AirtableParams do
       Map.has_key?(params, "table_name_validated?") == false ->
         #app uses snake case plan names, let's convert first
 
-        case Legl.Services.Airtable.AtTables.get_table_id(
+        case EhsEnforcement.Integrations.Airtable.AtTables.get_table_id(
           params["base"], params["table_name"]
           ) do
           {:ok, table_id} ->

@@ -1,12 +1,11 @@
-defmodule Legl.Services.Airtable.Patch do
+defmodule EhsEnforcement.Integrations.Airtable.Patch do
   @moduledoc false
   require Logger
-  alias Legl.Services.Airtable, as: AT
 
   def patch(base, table, data) do
-    base_url = Legl.Services.Airtable.Endpoint.base_url()
-    {:ok, url} = AT.Url.url(base, table, %{})
-    headers = Legl.Services.Airtable.Headers.headers()
+    base_url = EhsEnforcement.Integrations.Airtable.Endpoint.base_url()
+    {:ok, url} = EhsEnforcement.Integrations.Airtable.Url.url(base, table, %{})
+    headers = EhsEnforcement.Integrations.Airtable.Headers.headers()
 
     data =
       %{"records" => make_airtable_dataset(data), "typecast" => true}

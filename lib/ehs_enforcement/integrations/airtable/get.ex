@@ -1,6 +1,6 @@
-defmodule Legl.Services.Airtable.Get do
+defmodule EhsEnforcement.Integrations.Airtable.Get do
   require Logger
-  alias Legl.Services.Airtable, as: AT
+  alias EhsEnforcement.Integrations.Airtable, as: AT
 
   def get(base, table, params) do
     base_url = AT.Endpoint.base_url()
@@ -36,9 +36,9 @@ defmodule Legl.Services.Airtable.Get do
   end
 
   def get_id(base, table, params) do
-    base_url = Legl.Services.Airtable.Endpoint.base_url()
+    base_url = EhsEnforcement.Integrations.Airtable.Endpoint.base_url()
     {:ok, url} = AT.Url.url(base, table, params)
-    headers = Legl.Services.Airtable.Headers.headers()
+    headers = EhsEnforcement.Integrations.Airtable.Headers.headers()
 
     req_opts = [
       {:base_url, base_url},

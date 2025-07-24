@@ -1,4 +1,4 @@
-defmodule Legl.Services.Airtable.AtFields do
+defmodule EhsEnforcement.Integrations.Airtable.AtFields do
   @doc """
 
   """

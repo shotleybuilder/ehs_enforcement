@@ -1,4 +1,4 @@
-defmodule Legl.Services.Airtable.Url do
+defmodule EhsEnforcement.Integrations.Airtable.Url do
 
   @moduledoc """
 

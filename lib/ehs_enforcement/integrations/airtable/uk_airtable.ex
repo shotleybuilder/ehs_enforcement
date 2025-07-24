@@ -1,8 +1,8 @@
-defmodule Legl.Services.Airtable.UkAirtable do
-  alias Legl.Services.Airtable.AtBasesTables
-  alias Legl.Services.Airtable.Records
-  alias Legl.Countries.Uk.LeglRegister.LegalRegister
-  alias Legl.Countries.Uk.Article.Taxa.LATTaxa
+defmodule EhsEnforcement.Integrations.Airtable.UkAirtable do
+  alias EhsEnforcement.Integrations.Airtable.AtBasesTables
+  alias EhsEnforcement.Integrations.Airtable.Records
+  alias EhsEnforcement.Legislation.LegalRegister
+  alias EhsEnforcement.Legislation.Taxa.LATTaxa
 
   @type opts :: %{
           base_id: String.t(),
@@ -136,7 +136,7 @@ defmodule Legl.Services.Airtable.UkAirtable do
       %{"Name" => name, "Title_EN" => title} = fields
       IO.puts("#{title}")
       [_, _, field] = opts.fields_source
-      {:ok, path} = Legl.Utility.resource_path(Map.get(fields, field))
+      {:ok, path} = EhsEnforcement.Utility.resource_path(Map.get(fields, field))
 
       with(:ok <- func.(name, path, opts)) do
         :ok

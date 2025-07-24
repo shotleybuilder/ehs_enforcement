@@ -1,4 +1,4 @@
-defmodule Legl.Services.Airtable.AtTables do
+defmodule EhsEnforcement.Integrations.Airtable.AtTables do
   @doc """
   Returns a map of the Airtable Base Table Names and IDs for a given Base ID.
   """

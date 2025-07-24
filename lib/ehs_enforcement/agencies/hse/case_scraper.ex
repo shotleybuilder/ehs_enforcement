@@ -1,4 +1,9 @@
-defmodule Legl.Services.Hse.ClientCases do
+defmodule EhsEnforcement.Agencies.Hse.CaseScraper do
+  @moduledoc """
+  HSE case scraper module.
+  Handles scraping of HSE court case data from the HSE website.
+  """
+
   def get_hse_cases(search, opts \\ %{database: "convictions"}) do
     # Options are 'convictions-history' or 'convictions'
 
@@ -69,7 +74,7 @@ defmodule Legl.Services.Hse.ClientCases do
           %{
             regulator_id: String.trim(regulator_id),
             offender_name: offender_name,
-            offence_action_date: Legl.Utility.iso_date(offence_action_date),
+            offence_action_date: EhsEnforcement.Utility.iso_date(offence_action_date),
             offender_local_authority: offender_local_authority,
             offender_main_activity: offender_main_activity
           }
@@ -153,9 +158,9 @@ defmodule Legl.Services.Hse.ClientCases do
       ],
       acc ->
         Map.merge(acc, %{
-          regulator_function: Legl.Utility.upcase_first_from_upcase_phrase(regulator_function),
+          regulator_function: EhsEnforcement.Utility.upcase_first_from_upcase_phrase(regulator_function),
           regulator_regulator_function:
-            "HSE_" <> Legl.Utility.upcase_first_from_upcase_phrase(regulator_function)
+            "HSE_" <> EhsEnforcement.Utility.upcase_first_from_upcase_phrase(regulator_function)
         })
 
       [
@@ -174,7 +179,7 @@ defmodule Legl.Services.Hse.ClientCases do
       [
         {"td", _, [{_, _, ["Total Fine"]}]},
         {"td", _, [offence_fine]},
-        {"td", _, [{_, _, ["Total Costs Awarded to HSE"]}]},
+        {"td", _, [{_, _, ["Total Costs Awarded to HSE"]}]},
         {"td", _, [offence_costs]}
       ],
       acc ->
@@ -187,7 +192,7 @@ defmodule Legl.Services.Hse.ClientCases do
         {"td", _, [{_, _, ["Total Fine"]}]},
         {:comment, _},
         {"td", _, [offence_fine]},
-        {"td", _, [{_, _, ["Total Costs Awarded to HSE"]}]},
+        {"td", _, [{_, _, ["Total Costs Awarded to HSE"]}]},
         {"td", _, [offence_costs]}
       ],
       acc ->
@@ -242,7 +247,7 @@ defmodule Legl.Services.Hse.ClientCases do
           offence_number: acc.offence_number + 1,
           offence_result: offence_result,
           offence_breaches: acc.offence_breaches ++ [offence_breach],
-          offence_hearing_date: Legl.Utility.iso_date(offence_hearing_date)
+          offence_hearing_date: EhsEnforcement.Utility.iso_date(offence_hearing_date)
         })
 
       _, acc ->

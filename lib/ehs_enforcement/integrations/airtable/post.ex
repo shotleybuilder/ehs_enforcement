@@ -1,15 +1,14 @@
-defmodule Legl.Services.Airtable.Post do
+defmodule EhsEnforcement.Integrations.Airtable.Post do
   @moduledoc """
   This module is responsible for posting data to Airtable.
   """
   require Logger
-  alias Legl.Services.Airtable, as: AT
 
   @spec post(String.t(), String.t(), map) :: :ok | :error
   def post(base, table, data) do
-    base_url = Legl.Services.Airtable.Endpoint.base_url()
-    {:ok, url} = AT.Url.url(base, table, %{})
-    headers = Legl.Services.Airtable.Headers.headers()
+    base_url = EhsEnforcement.Integrations.Airtable.Endpoint.base_url()
+    {:ok, url} = EhsEnforcement.Integrations.Airtable.Url.url(base, table, %{})
+    headers = EhsEnforcement.Integrations.Airtable.Headers.headers()
 
     data =
       make_airtable_dataset(data)

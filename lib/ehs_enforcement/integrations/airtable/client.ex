@@ -1,4 +1,4 @@
-defmodule Legl.Services.Airtable.Client do
+defmodule EhsEnforcement.Integrations.Airtable.Client do
   use HTTPoison.Base
 
   @endpoint "https://api.airtable.com/v0"

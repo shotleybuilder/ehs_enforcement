@@ -1,4 +1,4 @@
-defmodule Legl.Services.Airtable.AtFormulas do
+defmodule EhsEnforcement.Integrations.Airtable.AtFormulas do
   @doc """
 
   """
