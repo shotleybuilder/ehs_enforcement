@@ -69,7 +69,6 @@ defmodule EhsEnforcement.MixProject do
       {:req, "~> 0.5"},
       {:tesla, "~> 1.4"},
       {:hackney, "~> 1.18"},
-      {:httpoison, "~> 2.0"},
       {:csv, "~> 3.0"},
       {:ex_prompt, "~> 0.2.0"}
     ]
