@@ -466,7 +466,9 @@ defmodule EhsEnforcement.Legislation.Taxa.LATTaxa do
       end)
 
     Enum.each(results, fn result_subset ->
-      EhsEnforcement.Integrations.Airtable.AtPatch.patch_records(result_subset, headers, params)
+      # result_subset is already JSON encoded, but we need the raw data for the new Patch module
+      data = Jason.decode!(result_subset)
+      EhsEnforcement.Integrations.Airtable.Patch.patch(params.base, params.table, data["records"])
     end)
   end
 end

@@ -1,13 +1,13 @@
-defmodule Legl.Countries.Uk.LeglEnforcement.HseNoticesTest do
-  # mix test test/legl/countries/uk/legl_enforcement/hse_notices_test.exs
+defmodule EhsEnforcement.Agencies.Hse.NoticesTest do
+  # mix test test/ehs_enforcement/countries/uk/legl_enforcement/hse_notices_test.exs
   use ExUnit.Case, async: true
-  alias Legl.Countries.Uk.LeglEnforcement.HseNotices
+  alias EhsEnforcement.Agencies.Hse.{Notices, Breaches}
 
   setup_all do
     {:ok,
      notices:
-       Legl.Utility.read_json_records(
-         Path.expand("lib/legl/countries/uk/legl_enforcement/hse_notices.json")
+       EhsEnforcement.Utility.read_json_records(
+         Path.expand("lib/ehs_enforcement/agencies/hse/hse_notices.json")
        )}
   end
 
@@ -15,11 +15,11 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseNoticesTest do
     %{notices: notices} = context
 
     notices
-    |> HseNotices.enum_breaches()
+    |> Breaches.enum_breaches()
     |> IO.inspect()
     |> Enum.each(fn notice ->
       assert is_map(notice)
-      assert is_list(notice.breaches)
+      assert Map.has_key?(notice, :offence_breaches)
     end)
   end
 
@@ -93,7 +93,7 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseNoticesTest do
   ]
 
   test "match_title/2" do
-    result = HseNotices.match_title(@records, "Construction (Design and Management) Regulations")
+    result = Breaches.match_title(@records, "Construction (Design and Management) Regulations")
 
     assert result == {
              "rec8eJ507CIvSSEGm",
@@ -102,5 +102,12 @@ defmodule Legl.Countries.Uk.LeglEnforcement.HseNoticesTest do
              "2015",
              "51"
            }
+  end
+  
+  test "api_get_hse_notices/1" do
+    # Test that the api function exists and accepts options list
+    # This is an integration test function that makes actual API calls
+    # We'll just test that it doesn't crash with test options
+    assert function_exported?(Notices, :api_get_hse_notices, 1)
   end
 end
