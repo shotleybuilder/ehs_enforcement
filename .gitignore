@@ -35,3 +35,71 @@ ehs_enforcement-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Environment variables and secrets
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# API keys and credentials
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+config/secrets.exs
+secrets.json
+
+# SSL certificates
+priv/cert/
+ssl/
+certs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log
+logs/
+log/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# Development tools
+.elixir_ls/
+.lexical/
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Temporary extraction files (for this project)
+temp_extraction/
+
+# Project-specific sensitive files
+airtable_data.ex
+hse_enforcement_data.ex
+
