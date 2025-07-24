@@ -1,6 +1,6 @@
 # EHS Enforcement App - Implementation Plan
 
-**Status**: Phase 2 Complete ✅ - Architecture Fully Reorganized
+**Status**: Phase 2 Complete ✅ - Airtable Integration Complete, HSE Tests Ready
 **Last Updated**: 2025-07-24
 
 ## Executive Summary
@@ -41,6 +41,17 @@ Extract the `legl_enforcement` functionality into a standalone Phoenix LiveView 
   - Added Floki dependency for HTML parsing in scrapers
 - [x] Project compiles successfully with new architecture
 - [x] All module references updated and warnings resolved
+- [x] **Airtable Client Migration**: Complete migration from HTTPoison to Req
+  - Created `ReqClient` with rate limiting, retry logic, and error handling
+  - Updated all Airtable modules to use new standardized client
+  - Removed HTTPoison dependency and legacy code
+  - Enhanced response formats and error handling
+- [x] **HSE Test Setup**: Updated and verified test suite
+  - Updated test module namespaces and paths
+  - Copied test data from donor project (`hse_notices.json`)
+  - Fixed test assertions for current data structure
+  - Core functionality tests passing (`enum_breaches`, `match_title`)
+  - Added test coverage for HSE Cases module
 
 ### 🚧 Phase 3: LiveView UI (Ready to Start)
 - [ ] Setup PostgreSQL database schema  
@@ -309,13 +320,13 @@ jobs:
 4. Migrate core enforcement modules
 5. Create basic LiveView dashboard
 
-### Phase 2: Service Integration (Week 3-4)
-1. Refactor Airtable client for standalone use
-2. Setup PostgreSQL database schema
-3. Implement Airtable-to-PostgreSQL sync
-4. Refactor HSE scraper modules
-5. Add configuration management
-6. Implement error handling and logging
+### ✅ Phase 2: Service Integration (Week 3-4) - COMPLETE
+1. ✅ Refactor Airtable client for standalone use
+2. ⏭️ Setup PostgreSQL database schema (moved to Phase 3)
+3. ⏭️ Implement Airtable-to-PostgreSQL sync (moved to Phase 3) 
+4. 🚧 Refactor HSE scraper modules (in progress)
+5. ⏭️ Add configuration management (moved to Phase 3)
+6. ⏭️ Implement error handling and logging (moved to Phase 3)
 
 ### Phase 3: LiveView UI (Week 5-6)
 1. Create case management interface
