@@ -1,4 +1,4 @@
-defmodule Legl.Countries.Uk.LeglEnforcement.Hse do
+defmodule EhsEnforcement.Agencies.Hse.Common do
   @moduledoc """
 
   """
