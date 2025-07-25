@@ -12,7 +12,9 @@ defmodule EhsEnforcement.Agencies.Hse.CaseScraper do
     url =
       case search do
         %{page: page} ->
-          ~s/case_list.asp?PN=#{page}&ST=C&EO=LIKE&SN=F&SF=DN&SV=/
+          ~s/case_list.asp?PN=#{page}&ST=C&EO=LIKE&SN=F&SF=DN&SV=&SO=DODS/
+
+        # case_list.asp?PN=#{page}&ST=C&EO=LIKE&SN=F&SF=DN&SV=&SO=DODS
 
         %{id: id} ->
           ~s/case_list.asp?ST=C&EO=LIKE&SN=F&SF=CN&SV=#{id}/
@@ -158,7 +160,8 @@ defmodule EhsEnforcement.Agencies.Hse.CaseScraper do
       ],
       acc ->
         Map.merge(acc, %{
-          regulator_function: EhsEnforcement.Utility.upcase_first_from_upcase_phrase(regulator_function),
+          regulator_function:
+            EhsEnforcement.Utility.upcase_first_from_upcase_phrase(regulator_function),
           regulator_regulator_function:
             "HSE_" <> EhsEnforcement.Utility.upcase_first_from_upcase_phrase(regulator_function)
         })
