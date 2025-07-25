@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## BUILD SUMMARIES
+
+- **SAVE** Save build summaries to ~/Desktop/claude_build_summaries/[title of build summary].md
+
 ## ⚠️ CRITICAL ASH FRAMEWORK RULES
 
 **🚫 NEVER USE STANDARD ECTO/PHOENIX PATTERNS - ALWAYS USE ASH PATTERNS**

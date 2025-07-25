@@ -265,6 +265,18 @@ defmodule EhsEnforcement.Enforcement do
       loads -> Ash.Query.load(query, loads)
     end
     
+    # Apply sort if provided
+    query = case opts[:sort] do
+      nil -> query
+      sorts -> Ash.Query.sort(query, sorts)
+    end
+    
+    # Apply pagination if provided
+    query = case opts[:page] do
+      nil -> query
+      page_opts -> Ash.Query.page(query, page_opts)
+    end
+    
     Ash.read(query)
   end
 
@@ -273,6 +285,11 @@ defmodule EhsEnforcement.Enforcement do
       {:ok, notices} -> notices
       {:error, error} -> raise error
     end
+  end
+
+  def get_notice!(id, opts \\ []) do
+    EhsEnforcement.Enforcement.Notice
+    |> Ash.get!(id, opts)
   end
 
   # Breach functions

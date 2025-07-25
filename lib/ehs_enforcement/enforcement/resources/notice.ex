@@ -46,7 +46,13 @@ defmodule EhsEnforcement.Enforcement.Notice do
   end
 
   actions do
-    defaults [:create, :read, :update, :destroy]
+    defaults [:read, :update, :destroy]
+    
+    create :create do
+      accept [:airtable_id, :regulator_id, :regulator_ref_number, :notice_type, 
+              :notice_date, :operative_date, :compliance_date, :notice_body, 
+              :last_synced_at, :agency_id, :offender_id]
+    end
   end
 
   code_interface do

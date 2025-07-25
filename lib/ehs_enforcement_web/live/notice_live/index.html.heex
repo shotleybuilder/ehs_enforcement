@@ -1,0 +1,440 @@
+<div class="px-4 sm:px-6 lg:px-8">
+  <div class="sm:flex sm:items-center">
+    <div class="sm:flex-auto">
+      <h1 class="text-2xl font-semibold text-gray-900">Notice Management</h1>
+      <p class="mt-2 text-sm text-gray-700">
+        View and manage enforcement notices across all agencies
+      </p>
+    </div>
+    <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-2">
+      <button
+        type="button"
+        phx-click="export"
+        phx-value-format="csv"
+        class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+      >
+        Export
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="mt-6 bg-white shadow rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+      <form phx-change="filter" data-testid="notice-filters" class="space-y-4">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <!-- Agency Filter -->
+          <div>
+            <label for="agency_id" class="block text-sm font-medium text-gray-700">
+              Agency
+            </label>
+            <select
+              name="filters[agency_id]"
+              id="agency_id"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            >
+              <option value="">All Agencies</option>
+              <%= for agency <- @agencies do %>
+                <option value={agency.id} selected={@filters[:agency_id] == agency.id}>
+                  <%= agency.name %>
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <!-- Notice Type Filter -->
+          <div>
+            <label for="notice_type" class="block text-sm font-medium text-gray-700">
+              Notice Type
+            </label>
+            <select
+              name="filters[notice_type]"
+              id="notice_type"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            >
+              <option value="">All Types</option>
+              <option value="Improvement Notice" selected={@filters[:notice_type] == "Improvement Notice"}>
+                Improvement Notice
+              </option>
+              <option value="Prohibition Notice" selected={@filters[:notice_type] == "Prohibition Notice"}>
+                Prohibition Notice
+              </option>
+              <option value="Enforcement Notice" selected={@filters[:notice_type] == "Enforcement Notice"}>
+                Enforcement Notice
+              </option>
+            </select>
+          </div>
+
+          <!-- Date From Filter -->
+          <div>
+            <label for="date_from" class="block text-sm font-medium text-gray-700">
+              Date From
+            </label>
+            <input
+              type="date"
+              name="filters[date_from]"
+              id="date_from"
+              value={@filters[:date_from]}
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+
+          <!-- Date To Filter -->
+          <div>
+            <label for="date_to" class="block text-sm font-medium text-gray-700">
+              Date To
+            </label>
+            <input
+              type="date"
+              name="filters[date_to]"
+              id="date_to"
+              value={@filters[:date_to]}
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+
+          <!-- Compliance Status Filter -->
+          <div>
+            <label for="compliance_status" class="block text-sm font-medium text-gray-700">
+              Compliance Status
+            </label>
+            <select
+              name="filters[compliance_status]"
+              id="compliance_status"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            >
+              <option value="">All Statuses</option>
+              <option value="pending" selected={@filters[:compliance_status] == "pending"}>
+                Pending
+              </option>
+              <option value="overdue" selected={@filters[:compliance_status] == "overdue"}>
+                Overdue
+              </option>
+            </select>
+          </div>
+
+          <!-- Region Filter -->
+          <div>
+            <label for="region" class="block text-sm font-medium text-gray-700">
+              Region
+            </label>
+            <input
+              type="text"
+              name="filters[region]"
+              id="region"
+              value={@filters[:region]}
+              placeholder="e.g., Manchester"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button
+            type="button"
+            phx-click="clear_filters"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Clear Filters
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="mt-4">
+    <form phx-submit="search" data-testid="search-form" class="flex space-x-2">
+      <input
+        type="text"
+        name="search"
+        value={@search_query}
+        placeholder="Search by regulator ID, notice body, or offender name..."
+        class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+      />
+      <button
+        type="submit"
+        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+      >
+        Search
+      </button>
+      <%= if @search_query != "" do %>
+        <button
+          type="button"
+          phx-click="clear_search"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Clear Search
+        </button>
+      <% end %>
+    </form>
+  </div>
+
+  <!-- View Mode Toggle -->
+  <div class="mt-4 flex justify-between items-center">
+    <div>
+      <span class="text-sm text-gray-700">
+        Showing <%= (@page - 1) * @page_size + 1 %> to <%= min(@page * @page_size, @total_notices) %> of <%= @total_notices %> notices
+      </span>
+    </div>
+    <div class="space-x-2">
+      <button
+        type="button"
+        phx-click="change_view"
+        phx-value-view="table"
+        class={[
+          "px-3 py-1 text-sm rounded-md",
+          @view_mode == :table && "bg-indigo-600 text-white",
+          @view_mode != :table && "bg-gray-200 text-gray-700 hover:bg-gray-300"
+        ]}
+      >
+        Table View
+      </button>
+      <button
+        type="button"
+        phx-click="change_view"
+        phx-value-view="timeline"
+        class={[
+          "px-3 py-1 text-sm rounded-md",
+          @view_mode == :timeline && "bg-indigo-600 text-white",
+          @view_mode != :timeline && "bg-gray-200 text-gray-700 hover:bg-gray-300"
+        ]}
+      >
+        Timeline View
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="mt-4">
+    <%= if @loading do %>
+      <div class="flex justify-center items-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    <% else %>
+      <%= if Enum.empty?(@notices) do %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No notices found</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            Try adjusting your filters or search criteria.
+          </p>
+        </div>
+      <% else %>
+        <%= if @view_mode == :table do %>
+          <!-- Table View -->
+          <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg" data-testid="notice-list">
+            <table class="min-w-full divide-y divide-gray-300">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th
+                    scope="col"
+                    class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100"
+                    phx-click="sort"
+                    phx-value-field="regulator_id"
+                  >
+                    Notice ID <%= get_sort_icon(assigns, "regulator_id") %>
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100"
+                    phx-click="sort"
+                    phx-value-field="notice_type"
+                  >
+                    Notice Type <%= get_sort_icon(assigns, "notice_type") %>
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100"
+                    phx-click="sort"
+                    phx-value-field="offender_id"
+                  >
+                    Offender <%= get_sort_icon(assigns, "offender_id") %>
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                  >
+                    Agency
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100"
+                    phx-click="sort"
+                    phx-value-field="notice_date"
+                  >
+                    Notice Date <%= get_sort_icon(assigns, "notice_date") %>
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                  >
+                    Compliance Status
+                  </th>
+                  <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                    <span class="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 bg-white">
+                <%= for notice <- @notices do %>
+                  <tr data-notice-type={notice.notice_type}>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                      <%= notice.regulator_id %>
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm">
+                      <span class={["inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", notice_type_class(notice.notice_type)]}>
+                        <%= notice.notice_type %>
+                      </span>
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                      <%= if notice.offender do %>
+                        <%= notice.offender.name %>
+                        <div class="text-xs text-gray-500">
+                          <%= notice.offender.local_authority %>
+                        </div>
+                      <% end %>
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                      <%= if notice.agency do %>
+                        <%= notice.agency.name %>
+                      <% end %>
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                      <%= format_date(notice.notice_date) %>
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm">
+                      <span class={compliance_status_class(notice)}>
+                        <%= compliance_status(notice) %>
+                      </span>
+                    </td>
+                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                      <.link
+                        navigate={~p"/notices/#{notice.id}"}
+                        class="text-indigo-600 hover:text-indigo-900"
+                      >
+                        View
+                      </.link>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <!-- Timeline View -->
+          <div data-testid="notice-timeline" class="space-y-6">
+            <% notices_by_date = Enum.group_by(@notices, & &1.notice_date) %>
+            <%= for {date, notices} <- Enum.sort(notices_by_date, fn {d1, _}, {d2, _} -> Date.compare(d2, d1) != :lt end) do %>
+              <div data-date={date}>
+                <h3 class="text-lg font-medium text-gray-900 mb-4">
+                  <%= format_date(date) %>
+                </h3>
+                <div class="space-y-4">
+                  <%= for notice <- notices do %>
+                    <div data-testid="timeline-entry" class="bg-white shadow rounded-lg p-4 border-l-4 border-gray-300">
+                      <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                          <div class="flex items-center space-x-2">
+                            <span class={["inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", notice_type_class(notice.notice_type)]}>
+                              <%= notice.notice_type %>
+                            </span>
+                            <span class="text-sm font-medium text-gray-900">
+                              <%= notice.regulator_id %>
+                            </span>
+                          </div>
+                          <div class="mt-2">
+                            <p class="text-sm text-gray-900 font-medium">
+                              <%= if notice.offender, do: notice.offender.name %>
+                            </p>
+                            <p class="text-sm text-gray-500">
+                              <%= if notice.offender, do: notice.offender.local_authority %>
+                            </p>
+                          </div>
+                          <p class="mt-2 text-sm text-gray-600">
+                            <%= String.slice(notice.notice_body || "", 0, 150) %><%= if String.length(notice.notice_body || "") > 150, do: "..." %>
+                          </p>
+                          <div class="mt-2 flex items-center space-x-4 text-sm text-gray-500">
+                            <span>Agency: <%= if notice.agency, do: notice.agency.name %></span>
+                            <span>Compliance: <span class={compliance_status_class(notice)}><%= compliance_status(notice) %></span></span>
+                          </div>
+                        </div>
+                        <div class="ml-4">
+                          <.link
+                            navigate={~p"/notices/#{notice.id}"}
+                            class="text-indigo-600 hover:text-indigo-900 text-sm"
+                          >
+                            View Details →
+                          </.link>
+                        </div>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <!-- Pagination -->
+  <%= if @total_notices > 0 do %>
+    <div data-testid="pagination" class="mt-6 flex items-center justify-between">
+      <div data-testid="pagination-controls" class="flex items-center space-x-2">
+        <label for="page_size" class="text-sm text-gray-700">Show</label>
+        <form phx-change="change_page_size" class="inline">
+          <select
+            name="page_size"
+            id="page_size"
+            class="rounded-md border-gray-300 text-sm"
+          >
+            <option value="10" selected={@page_size == 10}>10</option>
+            <option value="20" selected={@page_size == 20}>20</option>
+            <option value="50" selected={@page_size == 50}>50</option>
+            <option value="100" selected={@page_size == 100}>100</option>
+          </select>
+        </form>
+        <span class="text-sm text-gray-700">per page</span>
+      </div>
+
+      <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+        <%= if @page > 1 do %>
+          <button
+            type="button"
+            phx-click="paginate"
+            phx-value-page={@page - 1}
+            class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+          >
+            <span class="sr-only">Previous</span>
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        <% end %>
+
+        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+          Page <%= @page %> of <%= total_pages(@total_notices, @page_size) %>
+        </span>
+
+        <%= if @page < total_pages(@total_notices, @page_size) do %>
+          <button
+            type="button"
+            phx-click="paginate"
+            phx-value-page={@page + 1}
+            class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+          >
+            <span class="sr-only">Next</span>
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        <% end %>
+      </nav>
+    </div>
+  <% end %>
+</div>
+
