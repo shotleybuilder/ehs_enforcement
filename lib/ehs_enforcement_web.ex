@@ -89,6 +89,8 @@ defmodule EhsEnforcementWeb do
       import Phoenix.HTML
       # Core UI components
       import EhsEnforcementWeb.CoreComponents
+      # Custom components
+      import EhsEnforcementWeb.Components.AgencyCard
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS

@@ -179,7 +179,7 @@ defmodule EhsEnforcement.Enforcement do
         end)
     end
     
-    case Ash.aggregate(query, [{aggregate_type, field}]) do
+    case Ash.aggregate(query, {aggregate_type, field}) do
       {:ok, result} -> 
         Map.get(result, aggregate_type, 0)
       {:error, error} -> 
