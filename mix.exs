@@ -71,6 +71,7 @@ defmodule EhsEnforcement.MixProject do
       {:tesla, "~> 1.4"},
       {:hackney, "~> 1.18"},
       {:csv, "~> 3.0"},
+      {:number, "~> 1.0"},
       {:ex_prompt, "~> 0.2.0"}
     ]
   end

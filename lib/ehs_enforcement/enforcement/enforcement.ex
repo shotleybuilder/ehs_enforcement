@@ -221,10 +221,16 @@ defmodule EhsEnforcement.Enforcement do
       sorts -> Ash.Query.sort(query, sorts)
     end
     
-    # Apply limit if provided
-    query = case opts[:limit] do
+    # Apply pagination if provided
+    query = case opts[:page] do
       nil -> query
-      limit -> Ash.Query.limit(query, limit)
+      page_opts -> Ash.Query.page(query, page_opts)
+    end
+    
+    # Apply limit if provided (only if no pagination)
+    query = case {opts[:limit], opts[:page]} do
+      {limit, nil} when not is_nil(limit) -> Ash.Query.limit(query, limit)
+      _ -> query
     end
     
     # Apply load if provided
@@ -239,6 +245,21 @@ defmodule EhsEnforcement.Enforcement do
   def list_offenders!(opts \\ []) do
     case list_offenders(opts) do
       {:ok, offenders} -> offenders
+      {:error, error} -> raise error
+    end
+  end
+
+  def count_offenders!(opts \\ []) do
+    query = EhsEnforcement.Enforcement.Offender
+    
+    # Apply filters if provided
+    query = case opts[:filter] do
+      nil -> query
+      filters -> Ash.Query.filter(query, ^filters)
+    end
+    
+    case Ash.count(query) do
+      {:ok, count} -> count
       {:error, error} -> raise error
     end
   end

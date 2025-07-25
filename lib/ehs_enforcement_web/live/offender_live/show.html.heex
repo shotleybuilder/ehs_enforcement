@@ -1,0 +1,513 @@
+<%= if @offender do %>
+  <div class="space-y-6">
+    <!-- Header with Navigation -->
+    <div class="flex justify-between items-start">
+      <div>
+        <nav class="flex" aria-label="Breadcrumb">
+          <ol class="flex items-center space-x-4">
+            <li>
+              <.link href="/offenders" class="text-gray-400 hover:text-gray-500">
+                Back to Offenders
+              </.link>
+            </li>
+            <li>
+              <svg class="flex-shrink-0 h-5 w-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+              </svg>
+            </li>
+            <li>
+              <span class="text-gray-500"><%= @offender.name %></span>
+            </li>
+          </ol>
+        </nav>
+        
+        <div class="mt-4">
+          <h1 class="text-3xl font-bold text-gray-900">
+            <%= @offender.name %>
+            <%= if is_repeat_offender?(@offender) do %>
+              <span 
+                data-repeat-offender="true"
+                class="ml-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800"
+              >
+                Repeat Offender
+              </span>
+            <% end %>
+          </h1>
+          
+          <div class="mt-2 text-sm text-gray-600 space-y-1">
+            <div><strong>Location:</strong> <%= @offender.local_authority %>, <%= @offender.postcode %></div>
+            <div><strong>Industry:</strong> <%= @offender.industry %></div>
+            <%= if @offender.main_activity do %>
+              <div><strong>Main Activity:</strong> <%= @offender.main_activity %></div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Export Actions -->
+      <div class="flex gap-2">
+        <button
+          phx-click="export_csv"
+          data-role="export-csv"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Export CSV
+        </button>
+        <button
+          phx-click="export_pdf"
+          data-role="export-pdf"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Export Report
+        </button>
+      </div>
+    </div>
+
+    <!-- Statistics Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Total cases:</dt>
+                <dd class="text-lg font-medium text-gray-900"><%= @offender.total_cases || 0 %> Cases</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5-5-5h5v-6h0z" />
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Total notices:</dt>
+                <dd class="text-lg font-medium text-gray-900"><%= @offender.total_notices || 0 %> Notices</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Total fines:</dt>
+                <dd class="text-lg font-medium text-gray-900"><%= format_currency(@offender.total_fines) %></dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Active period:</dt>
+                <dd class="text-sm font-medium text-gray-900">
+                  <%= format_date(@offender.first_seen_date) %> - <%= format_date(@offender.last_seen_date) %>
+                </dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Risk Assessment and Context -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Risk Assessment -->
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">Risk Assessment</h3>
+        </div>
+        <div class="p-6">
+          <div class="flex items-center space-x-3">
+            <span class={[
+              "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium",
+              case @risk_assessment.level do
+                "High Risk" -> "bg-red-100 text-red-800"
+                "Medium Risk" -> "bg-yellow-100 text-yellow-800"
+                _ -> "bg-green-100 text-green-800"
+              end
+            ]}>
+              <%= @risk_assessment.level %>
+            </span>
+            <span class="text-sm text-gray-500">Score: <%= @risk_assessment.score %>/100</span>
+          </div>
+          
+          <%= if length(@risk_assessment.factors) > 0 do %>
+            <div class="mt-4">
+              <h4 class="text-sm font-medium text-gray-700 mb-2">Risk Factors:</h4>
+              <ul class="text-sm text-gray-600 space-y-1">
+                <%= for factor <- @risk_assessment.factors do %>
+                  <li class="flex items-center">
+                    <svg class="h-4 w-4 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    <%= factor %>
+                  </li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Agency Breakdown -->
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">Agency Breakdown</h3>
+        </div>
+        <div class="p-6">
+          <%= if map_size(@agency_breakdown) > 0 do %>
+            <div class="space-y-4">
+              <%= for {agency_code, stats} <- @agency_breakdown do %>
+                <div data-agency={agency_code} class="flex justify-between items-center">
+                  <div>
+                    <span class="font-medium text-gray-900">
+                      <%= case agency_code do %>
+                        <% :hse -> %>Health and Safety Executive
+                        <% :ea -> %>Environment Agency
+                        <% :onr -> %>Office for Nuclear Regulation
+                        <% _ -> %>Unknown Agency
+                      <% end %>
+                    </span>
+                    <div class="text-sm text-gray-500">
+                      <%= stats.cases %> cases, <%= stats.notices %> notices
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="font-medium text-gray-900">
+                      <%= format_currency(stats.total_fines) %>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="text-gray-500 text-sm">No agency breakdown available</p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Industry Context -->
+    <%= if @industry_context.peer_count > 0 do %>
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">Industry Context</h3>
+        </div>
+        <div class="p-6">
+          <div class="flex justify-between items-center">
+            <div>
+              <span class="font-medium text-gray-900"><%= @industry_context.industry %></span>
+              <div class="text-sm text-gray-500">
+                Compared to <%= @industry_context.peer_count %> peer companies
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="font-medium text-gray-900">
+                <%= @industry_context.comparison %>
+              </div>
+              <div class="text-sm text-gray-500">
+                Industry avg: <%= format_currency(@industry_context.avg_fines) %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Enforcement Timeline -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex justify-between items-center">
+          <h3 class="text-lg font-medium text-gray-900">Enforcement Timeline</h3>
+          <p class="text-sm text-gray-600">Enforcement history for <%= @offender.name %></p>
+        </div>
+        
+        <!-- Timeline Filters -->
+        <div class="mt-4">
+          <.form
+            for={%{}}
+            as={:timeline_filters}
+            phx-change="filter_timeline"
+            id="timeline-filters"
+            class="flex flex-wrap gap-4"
+          >
+            <div>
+              <label for="filter_type" class="block text-xs font-medium text-gray-700 mb-1">Type</label>
+              <select
+                name="filter_type"
+                id="filter_type"
+                aria-label="Filter by type"
+                class="text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">All Types</option>
+                <option value="cases" selected={@timeline_filters[:filter_type] == "cases"}>Cases Only</option>
+                <option value="notices" selected={@timeline_filters[:filter_type] == "notices"}>Notices Only</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="agency" class="block text-xs font-medium text-gray-700 mb-1">Agency</label>
+              <select
+                name="agency"
+                id="agency"
+                aria-label="Filter by agency"
+                class="text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">All Agencies</option>
+                <option value="hse" selected={@timeline_filters[:agency] == "hse"}>HSE</option>
+                <option value="ea" selected={@timeline_filters[:agency] == "ea"}>Environment Agency</option>
+                <option value="onr" selected={@timeline_filters[:agency] == "onr"}>ONR</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="from_date" class="block text-xs font-medium text-gray-700 mb-1">From Date</label>
+              <input
+                type="date"
+                name="from_date"
+                id="from_date"
+                value={@timeline_filters[:from_date] || ""}
+                aria-label="From date"
+                class="text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label for="to_date" class="block text-xs font-medium text-gray-700 mb-1">To Date</label>
+              <input
+                type="date"
+                name="to_date"
+                id="to_date"
+                value={@timeline_filters[:to_date] || ""}
+                aria-label="To date"
+                class="text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+          </.form>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <%= if length(@enforcement_timeline) > 0 do %>
+          <div data-role="timeline" role="list" class="space-y-8">
+            <%= for {year, actions} <- @enforcement_timeline do %>
+              <div data-year={year} class="relative">
+                <!-- Year Header -->
+                <div class="relative flex items-center">
+                  <div class="flex-shrink-0">
+                    <span class="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center ring-8 ring-white">
+                      <svg class="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                      </svg>
+                    </span>
+                  </div>
+                  <div class="ml-4">
+                    <h4 class="text-lg font-medium text-gray-900"><%= year %></h4>
+                    <p class="text-sm text-gray-500"><%= length(actions) %> enforcement actions</p>
+                  </div>
+                </div>
+
+                <!-- Timeline Items -->
+                <div class="ml-4 pl-8 border-l border-gray-200 space-y-6 mt-4">
+                  <%= for action <- actions do %>
+                    <div
+                      data-role="timeline-item"
+                      role="listitem"
+                      tabindex="0"
+                      class={[
+                        "relative bg-white p-4 rounded-lg border",
+                        case action.action_type do
+                          :case -> "border-red-200 bg-red-50"
+                          :notice -> "border-yellow-200 bg-yellow-50"
+                        end
+                      ]}
+                    >
+                      <%= if action.action_type == :case do %>
+                        <div data-notice-id={action.id}>
+                          <div class="flex justify-between items-start">
+                            <div>
+                              <div class="text-sm font-medium text-gray-900">
+                                Case: <%= action.regulator_id %>
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                <span>Notice Date: <%= Date.to_string(action.offence_action_date) %></span>
+                              </div>
+                            </div>
+                            <div class="text-right">
+                              <div class="text-sm font-medium text-red-600">
+                                <%= format_currency(action.offence_fine) %>
+                              </div>
+                              <div class="text-xs text-gray-500">
+                                <%= get_agency_name(action.agency) %>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="mt-2 text-sm text-gray-700">
+                            <%= action.offence_breaches %>
+                          </div>
+                        </div>
+                      <% else %>
+                        <div data-notice-id={action.id}>
+                          <div class="flex justify-between items-start">
+                            <div>
+                              <div class="text-sm font-medium text-gray-900">
+                                <%= String.replace(action.notice_type, "_", " ") |> String.capitalize() %>: <%= action.regulator_id %>
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1 space-x-4">
+                                <span>Notice Date: <%= Date.to_string(action.notice_date) %></span>
+                                <span>Compliance Date: <%= Date.to_string(action.compliance_date) %></span>
+                              </div>
+                              <%= if action.compliance_date do %>
+                                <div class="text-xs mt-1">
+                                  <span class="text-gray-500">Compliance period: </span>
+                                  <span class="font-medium">
+                                    <%= Date.diff(action.compliance_date, action.notice_date) %> days
+                                  </span>
+                                </div>
+                              <% end %>
+                            </div>
+                            <div class="text-right">
+                              <div class="text-xs text-gray-500">
+                                <%= get_agency_name(action.agency) %>
+                              </div>
+                              <!-- Compliance Status -->
+                              <div class="mt-1">
+                                <%= if action.compliance_date && Date.compare(action.compliance_date, Date.utc_today()) == :lt do %>
+                                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Compliance Status: Completed
+                                  </span>
+                                <% else %>
+                                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    Compliance Status: Pending
+                                  </span>
+                                <% end %>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="mt-2 text-sm text-gray-700">
+                            <%= action.notice_body %>
+                          </div>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No enforcement actions found</h3>
+            <p class="mt-1 text-sm text-gray-500">No enforcement history available with current filters.</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Related Offenders -->
+    <%= if length(@related_offenders.same_industry) > 0 || length(@related_offenders.same_area) > 0 do %>
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">Related Offenders</h3>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <%= if length(@related_offenders.same_industry) > 0 do %>
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-3">Same Industry</h4>
+                <div class="space-y-2">
+                  <%= for related <- Enum.take(@related_offenders.same_industry, 3) do %>
+                    <div class="flex justify-between items-center text-sm">
+                      <.link patch={~p"/offenders/#{related.id}"} class="text-indigo-600 hover:text-indigo-900 truncate">
+                        <%= related.name %>
+                      </.link>
+                      <span class="text-gray-500 ml-2"><%= format_currency(related.total_fines) %></span>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+
+            <%= if length(@related_offenders.same_area) > 0 do %>
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-3">Same Area</h4>
+                <div class="space-y-2">
+                  <%= for related <- Enum.take(@related_offenders.same_area, 3) do %>
+                    <div class="flex justify-between items-center text-sm">
+                      <.link patch={~p"/offenders/#{related.id}"} class="text-indigo-600 hover:text-indigo-900 truncate">
+                        <%= related.name %>
+                      </.link>
+                      <span class="text-gray-500 ml-2"><%= format_currency(related.total_fines) %></span>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% else %>
+  <!-- Offender Not Found -->
+  <div class="text-center py-12">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900">Offender not found</h3>
+    <p class="mt-1 text-sm text-gray-500">The requested offender could not be found.</p>
+    <div class="mt-6">
+      <.link href="/offenders" class="text-indigo-600 hover:text-indigo-900">
+        Back to Offenders
+      </.link>
+    </div>
+  </div>
+<% end %>
+
+<script>
+  window.addEventListener("phx:download_csv", (e) => {
+    const blob = new Blob([e.detail.data], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = e.detail.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  });
+</script>

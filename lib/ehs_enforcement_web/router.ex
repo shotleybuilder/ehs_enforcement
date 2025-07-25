@@ -29,6 +29,10 @@ defmodule EhsEnforcementWeb.Router do
     # Notice Management Routes
     live "/notices", NoticeLive.Index, :index
     live "/notices/:id", NoticeLive.Show, :show
+    
+    # Offender Management Routes
+    live "/offenders", OffenderLive.Index, :index
+    live "/offenders/:id", OffenderLive.Show, :show
   end
 
   # Other scopes may use custom stacks.

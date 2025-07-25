@@ -91,6 +91,9 @@ defmodule EhsEnforcementWeb do
       import EhsEnforcementWeb.CoreComponents
       # Custom components
       import EhsEnforcementWeb.Components.AgencyCard
+      alias EhsEnforcementWeb.OffenderTableComponent
+      alias EhsEnforcementWeb.OffenderCardComponent
+      alias EhsEnforcementWeb.EnforcementTimelineComponent
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS
