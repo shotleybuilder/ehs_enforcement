@@ -61,6 +61,20 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# Ash configuration
+config :ash, :utc_datetime_type, :datetime
+config :ash, :disable_async?, true
+
+# Configure AshPostgres
+config :ehs_enforcement, EhsEnforcement.Repo,
+  extensions: [AshPostgres.Repo]
+
+# Ash domain configuration
+config :ehs_enforcement, ash_domains: [
+  EhsEnforcement.Enforcement,
+  EhsEnforcement.Sync
+]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

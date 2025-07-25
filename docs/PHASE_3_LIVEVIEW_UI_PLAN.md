@@ -1,162 +1,78 @@
 # Phase 3: LiveView UI Implementation Plan
 
-**Status**: Ready to Start
+**Status**: In Progress - Phase 3.1 Complete ✅
 **Last Updated**: 2025-07-25
 **Estimated Duration**: 2-3 weeks
 
 ## Executive Summary
 
-Implement a comprehensive Phoenix LiveView interface for the EHS Enforcement application, including database setup, data migration from Airtable, configuration management, and interactive user interfaces for managing enforcement data. This phase establishes PostgreSQL as the primary data store, with Airtable being used only for one-time historical data import, after which it can be retired.
+Implement a comprehensive Phoenix LiveView interface for the EHS Enforcement application using the Ash framework as the core data layer. This phase includes Ash resource design, database setup through Ash migrations, data migration from Airtable, and interactive user interfaces powered by Ash queries and actions. PostgreSQL becomes the primary data store via AshPostgres, with Airtable being used only for one-time historical data import, after which it can be retired.
 
 ## Phase 3 Components
 
-### 3.1 Database Setup and Data Layer (Week 1, Days 1-2)
+### 3.1 Ash Framework Setup and Resource Design ✅ COMPLETE
 
-#### PostgreSQL Schema Design
-```sql
--- Agencies table
-CREATE TABLE agencies (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code VARCHAR(10) UNIQUE NOT NULL, -- 'hse', 'onr', 'orr', 'ea'
-  name VARCHAR(255) NOT NULL,
-  base_url VARCHAR(255),
-  active BOOLEAN DEFAULT true,
-  inserted_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
+**Status**: All Ash resources implemented and tested (23 tests passing)
 
--- Offenders table (companies/individuals subject to enforcement)
-CREATE TABLE offenders (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(500) NOT NULL,
-  local_authority VARCHAR(255),
-  postcode VARCHAR(20),
-  main_activity VARCHAR(500),
-  business_type VARCHAR(100), -- 'Limited Company', 'Individual', etc.
-  industry VARCHAR(255),
-  first_seen_date DATE,
-  last_seen_date DATE,
-  total_cases INTEGER DEFAULT 0,
-  total_notices INTEGER DEFAULT 0,
-  total_fines DECIMAL(12,2) DEFAULT 0,
-  inserted_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
+#### Architecture Implemented
 
--- Cases table (local cache of Airtable data)
-CREATE TABLE cases (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  agency_id UUID REFERENCES agencies(id),
-  offender_id UUID REFERENCES offenders(id),
-  airtable_id VARCHAR(255) UNIQUE,
-  regulator_id VARCHAR(100),
-  offence_result VARCHAR(255),
-  offence_fine DECIMAL(10,2),
-  offence_costs DECIMAL(10,2),
-  offence_action_date DATE,
-  offence_hearing_date DATE,
-  offence_breaches TEXT,
-  offence_breaches_clean TEXT,
-  regulator_function VARCHAR(255),
-  regulator_url VARCHAR(500),
-  related_cases TEXT, -- comma-separated list
-  last_synced_at TIMESTAMP,
-  inserted_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
+**Domain Structure**: Two-domain architecture separating core enforcement logic from sync operations:
+- `EhsEnforcement.Enforcement` - Core domain with Agency, Offender, Case, Notice, Breach resources  
+- `EhsEnforcement.Sync` - Sync domain for data import/export operations
+- `EhsEnforcement.Registry` - Centralized resource registry
 
--- Notices table
-CREATE TABLE notices (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  agency_id UUID REFERENCES agencies(id),
-  offender_id UUID REFERENCES offenders(id),
-  airtable_id VARCHAR(255) UNIQUE,
-  regulator_id VARCHAR(100),
-  regulator_ref_number VARCHAR(100),
-  notice_type VARCHAR(100),
-  notice_date DATE,
-  operative_date DATE,
-  compliance_date DATE,
-  notice_body TEXT,
-  last_synced_at TIMESTAMP,
-  inserted_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
+#### Key Architectural Decisions
 
--- Breaches table (normalized from cases)
-CREATE TABLE breaches (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  case_id UUID REFERENCES cases(id),
-  breach_description TEXT,
-  legislation_reference VARCHAR(255),
-  legislation_type VARCHAR(50), -- 'Act', 'Regulation', 'ACOP'
-  inserted_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
+**Resource Design Patterns**:
+- **Agency**: Atom-based codes (:hse, :onr, :orr, :ea) with constraint validation
+- **Offender**: Automatic name normalization with deduplication logic ("Company Ltd" → "company limited")
+- **Case**: Dual creation modes - direct IDs or lookup-based with agency_code + offender_attrs
+- **Statistics**: Non-atomic statistics tracking in Offender (total_cases, total_notices, total_fines)
 
--- Sync logs table
-CREATE TABLE sync_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  agency_id UUID REFERENCES agencies(id),
-  sync_type VARCHAR(50), -- 'cases', 'notices'
-  status VARCHAR(50), -- 'started', 'completed', 'failed'
-  records_synced INTEGER DEFAULT 0,
-  error_message TEXT,
-  started_at TIMESTAMP,
-  completed_at TIMESTAMP,
-  inserted_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
+**Relationship Management**:
+- Custom change functions for complex relationship creation (Case → Agency + Offender)
+- OffenderMatcher service for find-or-create with fuzzy matching
+- Error handling that converts `{:ok, nil}` to `{:error, :not_found}` for proper flow control
 
--- Create indexes
-CREATE INDEX idx_offenders_name ON offenders(name);
-CREATE INDEX idx_offenders_local_authority ON offenders(local_authority);
-CREATE INDEX idx_cases_agency_id ON cases(agency_id);
-CREATE INDEX idx_cases_offender_id ON cases(offender_id);
-CREATE INDEX idx_cases_airtable_id ON cases(airtable_id);
-CREATE INDEX idx_notices_agency_id ON notices(agency_id);
-CREATE INDEX idx_notices_offender_id ON notices(offender_id);
-CREATE INDEX idx_notices_airtable_id ON notices(airtable_id);
-CREATE INDEX idx_breaches_case_id ON breaches(case_id);
-CREATE INDEX idx_sync_logs_agency_id ON sync_logs(agency_id);
+**Data Layer Features**:
+- AshPostgres with automatic UUID primary keys
+- Identity constraints with conditional WHERE clauses
+- Calculations for derived data (total_penalty, enforcement_count)
+- Rich filtering and search capabilities
 
--- Unique constraint to prevent duplicate offenders
-CREATE UNIQUE INDEX idx_offenders_name_postcode ON offenders(LOWER(name), COALESCE(postcode, ''));
-```
+#### Critical Implementation Notes
 
-#### Schema Design Benefits:
+**OffenderMatcher Pattern**: Handles duplicate detection by normalizing company names and postcodes, with fallback to fuzzy search before creating new records.
 
-1. **Normalized Offender Data**
-   - Single source of truth for each company/individual
-   - Track enforcement history across multiple cases and notices
-   - Identify repeat offenders easily
-   - Maintain consistent company information
+**Case Creation Flexibility**: Supports both direct foreign key assignment and intelligent lookup-based creation via agency codes and offender attributes.
 
-2. **Deduplication Strategy**
-   - Match offenders by normalized name + postcode
-   - Handle variations in company names (Ltd vs Limited)
-   - Update offender statistics on each sync
-   - Link historical enforcement actions
+**Statistics Management**: Uses non-atomic updates with explicit transaction handling for offender statistics. This was chosen over Ash atomic operations due to argument passing complexity.
 
-3. **Enhanced Analytics**
-   - Total fines per offender
-   - Enforcement timeline per company
-   - Industry-based analysis
-   - Geographic distribution of offenders
+**Error Handling**: Domain functions return consistent `{:ok, result}` or `{:error, reason}` patterns, with proper Ash error translation in tests.
 
-#### Tasks:
-- [ ] Create Ecto migrations for all tables
-- [ ] Define Ecto schemas in `lib/ehs_enforcement/enforcement/`
-- [ ] Create database seeds with initial agency data
-- [ ] Implement Ecto changesets with validations
-- [ ] Add database indexes for performance
-- [ ] Implement offender matching/deduplication logic
+#### Migration Strategy Implemented
 
-### 3.2 Data Import and Sync Architecture (Week 1, Days 3-4)
+Generated Ash migrations create normalized PostgreSQL schema with proper indexes, constraints, and relationships. All migrations successfully applied with no manual SQL required.
 
-#### Flexible Sync Architecture (Airtable → PostgreSQL → Direct Scraping)
+#### Testing Approach
+
+Comprehensive test coverage using TDD principles:
+- Resource validation and constraint testing
+- Complex relationship creation scenarios  
+- Statistics update workflows
+- Search and filtering capabilities
+- Error condition handling
+
+**Migration Path**: Direct transition from flat Airtable structure to normalized Ash resources ready for LiveView integration.
+
+### 3.2 Data Import and Sync Architecture with Ash (Week 1, Days 3-4)
+
+#### Ash-based Sync Architecture
 ```elixir
 # lib/ehs_enforcement/sync/sync_manager.ex
 defmodule EhsEnforcement.Sync.SyncManager do
   use GenServer
+  alias EhsEnforcement.Enforcement
   
   @doc """
   Sync strategy that will evolve:
@@ -164,43 +80,79 @@ defmodule EhsEnforcement.Sync.SyncManager do
   Phase 4+: Direct scraping to PostgreSQL
   """
   
-  # Import historical data from Airtable (one-time operation)
+  # Import historical data from Airtable using Ash
   def import_from_airtable do
-    # One-time bulk import of existing Airtable data
-    # Transform flat Airtable structure to normalized PostgreSQL
-    # After import, Airtable can be retired
+    # Fetch from Airtable
+    airtable_records = fetch_airtable_data()
+    
+    # Use Ash bulk actions for efficient import
+    Ash.bulk_create(
+      airtable_records,
+      EhsEnforcement.Enforcement.Case,
+      :import_from_airtable,
+      return_errors?: true,
+      batch_size: 100
+    )
   end
   
-  # Direct agency sync (future primary method)
+  # Direct agency sync using Ash actions
   def sync_agency(agency_code, sync_type) do
-    # Fetch directly from agency website (HSE, ONR, etc.)
-    # Transform scraped data
-    # Find or create offenders
-    # Create cases/notices in PostgreSQL
-    # Update offender statistics
-    # Log sync results
+    # Get agency using Ash
+    {:ok, agency} = Enforcement.get_agency_by_code(agency_code)
+    
+    # Fetch data from agency website
+    scraped_data = scrape_agency_data(agency, sync_type)
+    
+    # Use Ash to create/update records
+    Enum.each(scraped_data, fn data ->
+      case sync_type do
+        :cases -> 
+          Enforcement.create_case(%{
+            agency_code: agency_code,
+            offender_attrs: extract_offender_attrs(data),
+            # ... other attributes
+          })
+        :notices ->
+          Enforcement.create_notice(%{
+            agency_code: agency_code,
+            offender_attrs: extract_offender_attrs(data),
+            # ... other attributes
+          })
+      end
+    end)
   end
 end
 
 # lib/ehs_enforcement/sync/offender_matcher.ex
 defmodule EhsEnforcement.Sync.OffenderMatcher do
+  alias EhsEnforcement.Enforcement
+  
   @doc """
-  Finds or creates an offender based on name and location
+  Finds or creates an offender using Ash queries
   """
   def find_or_create_offender(attrs) do
-    normalized_name = normalize_company_name(attrs.name)
+    normalized_attrs = %{attrs | name: normalize_company_name(attrs.name)}
     
-    # Try exact match first
-    offender = Repo.get_by(Offender, 
-      name: normalized_name,
-      postcode: attrs.postcode
-    )
-    
-    # If no exact match, try fuzzy matching
-    offender = offender || find_similar_offender(attrs)
-    
-    # Create new if no match found
-    offender || create_offender(attrs)
+    # Use Ash to find existing offender
+    case Enforcement.get_offender_by_name_and_postcode(
+      normalized_attrs.name,
+      normalized_attrs.postcode
+    ) do
+      {:ok, offender} -> 
+        {:ok, offender}
+      
+      {:error, %Ash.Error.Query.NotFound{}} ->
+        # Try fuzzy search using Ash
+        case Enforcement.search_offenders(normalized_attrs.name) do
+          {:ok, []} -> 
+            # Create new offender using Ash
+            Enforcement.create_offender(normalized_attrs)
+          
+          {:ok, similar_offenders} ->
+            # Return best match or create new
+            find_best_match(similar_offenders, normalized_attrs)
+        end
+    end
   end
   
   defp normalize_company_name(name) do
@@ -231,15 +183,43 @@ end
 # lib/ehs_enforcement/sync/airtable_importer.ex
 defmodule EhsEnforcement.Sync.AirtableImporter do
   @moduledoc """
-  One-time import tool to migrate existing Airtable data.
+  One-time import tool to migrate existing Airtable data using Ash.
   Can be removed after successful migration.
   """
   
+  alias EhsEnforcement.Enforcement
+  
   def import_all_data do
     # Paginate through Airtable records
-    # Transform single table to normalized structure
-    # Create offenders, cases, notices in PostgreSQL
-    # Mark import as complete
+    stream_airtable_records()
+    |> Stream.chunk_every(100)
+    |> Stream.each(&import_batch/1)
+    |> Stream.run()
+  end
+  
+  defp import_batch(records) do
+    # Group records by type
+    {cases, notices} = partition_records(records)
+    
+    # Import using Ash bulk operations
+    with {:ok, _} <- import_cases_batch(cases),
+         {:ok, _} <- import_notices_batch(notices) do
+      :ok
+    else
+      {:error, error} ->
+        Logger.error("Import batch failed: #{inspect(error)}")
+    end
+  end
+  
+  defp import_cases_batch(cases) do
+    Ash.bulk_create(
+      cases,
+      EhsEnforcement.Enforcement.Case,
+      :import_from_airtable,
+      return_errors?: true,
+      notify?: true,
+      batch_size: 50
+    )
   end
 end
 ```
@@ -328,17 +308,49 @@ end
 - [ ] Add Sentry integration for error tracking
 - [ ] Implement retry logic with exponential backoff
 
-### 3.5 Basic LiveView Dashboard (Week 2, Days 2-3)
+### 3.5 Basic LiveView Dashboard with Ash (Week 2, Days 2-3)
 
-#### Dashboard Components
-```
-lib/ehs_enforcement_web/live/
-├── dashboard_live.ex           # Main dashboard
-├── components/
-│   ├── agency_card.ex         # Agency status card
-│   ├── sync_status.ex         # Sync status indicator
-│   ├── recent_activity.ex     # Recent cases/notices
-│   └── statistics_chart.ex    # Data visualization
+#### Dashboard Components with Ash Integration
+```elixir
+# lib/ehs_enforcement_web/live/dashboard_live.ex
+defmodule EhsEnforcementWeb.DashboardLive do
+  use EhsEnforcementWeb, :live_view
+  alias EhsEnforcement.Enforcement
+  
+  @impl true
+  def mount(_params, _session, socket) do
+    # Use Ash to load data
+    agencies = Enforcement.list_agencies!()
+    stats = load_statistics(agencies)
+    
+    {:ok, 
+     socket
+     |> assign(:agencies, agencies)
+     |> assign(:stats, stats)
+     |> assign(:recent_cases, load_recent_cases())
+    }
+  end
+  
+  defp load_recent_cases do
+    Enforcement.list_cases!(
+      sort: [offence_action_date: :desc],
+      limit: 10,
+      load: [:offender, :agency]
+    )
+  end
+  
+  defp load_statistics(agencies) do
+    # Use Ash aggregates
+    Enum.map(agencies, fn agency ->
+      %{
+        agency_id: agency.id,
+        total_cases: Enforcement.count_cases!(filter: [agency_id: agency.id]),
+        total_fines: Enforcement.sum_fines!(filter: [agency_id: agency.id]),
+        last_sync: get_last_sync(agency)
+      }
+    end)
+  end
+end
 ```
 
 #### Dashboard Features:
@@ -356,18 +368,67 @@ lib/ehs_enforcement_web/live/
 - [ ] Create quick action buttons
 - [ ] Add real-time updates via PubSub
 
-### 3.6 Case Management Interface (Week 2, Days 4-5)
+### 3.6 Case Management Interface with Ash (Week 2, Days 4-5)
 
-#### Case LiveView Structure
-```
-lib/ehs_enforcement_web/live/case_live/
-├── index.ex          # Case listing with filters
-├── show.ex           # Case details view
-├── new.ex            # Manual case entry (post-Airtable)
-└── components/
-    ├── case_table.ex
-    ├── case_filters.ex
-    └── case_card.ex
+#### Case LiveView with Ash Queries
+```elixir
+# lib/ehs_enforcement_web/live/case_live/index.ex
+defmodule EhsEnforcementWeb.CaseLive.Index do
+  use EhsEnforcementWeb, :live_view
+  alias EhsEnforcement.Enforcement
+  
+  @impl true
+  def mount(_params, _session, socket) do
+    {:ok,
+     socket
+     |> assign(:cases, [])
+     |> assign(:agencies, Enforcement.list_agencies!())
+     |> assign(:filters, %{})
+     |> assign(:page, 1)
+     |> load_cases()
+    }
+  end
+  
+  @impl true
+  def handle_event("filter", %{"filters" => filters}, socket) do
+    {:noreply,
+     socket
+     |> assign(:filters, atomize_filters(filters))
+     |> assign(:page, 1)
+     |> load_cases()
+    }
+  end
+  
+  defp load_cases(socket) do
+    # Build Ash query with filters
+    query_opts = [
+      filter: build_ash_filter(socket.assigns.filters),
+      sort: [offence_action_date: :desc],
+      page: [limit: 20, offset: (socket.assigns.page - 1) * 20],
+      load: [:offender, :agency]
+    ]
+    
+    cases = Enforcement.list_cases!(query_opts)
+    assign(socket, :cases, cases)
+  end
+  
+  defp build_ash_filter(filters) do
+    Enum.reduce(filters, [], fn
+      {:agency_id, id}, acc when id != "" -> 
+        [agency_id: id | acc]
+      {:date_from, date}, acc when date != "" -> 
+        [offence_action_date: [greater_than_or_equal_to: date] | acc]
+      {:date_to, date}, acc when date != "" -> 
+        [offence_action_date: [less_than_or_equal_to: date] | acc]
+      {:search, query}, acc when query != "" ->
+        [or: [
+          [offender: [name: [ilike: "%#{query}%"]]],
+          [regulator_id: [ilike: "%#{query}%"]]
+        ] | acc]
+      _, acc -> acc
+    end)
+  end
+end
 ```
 
 #### Features:
@@ -445,20 +506,56 @@ lib/ehs_enforcement_web/live/offender_live/
 - [ ] Create repeat offender alerts
 - [ ] Build export functionality
 
-### 3.9 Search and Filter Capabilities (Week 3, Day 4)
+### 3.9 Search and Filter Capabilities with Ash (Week 3, Day 4)
 
-#### Advanced Search Implementation
+#### Advanced Search with Ash Queries
 ```elixir
 defmodule EhsEnforcement.Search do
-  import Ecto.Query
+  alias EhsEnforcement.Enforcement
   
-  def search_cases(query, filters) do
-    Case
-    |> filter_by_agency(filters[:agency])
-    |> filter_by_date_range(filters[:from_date], filters[:to_date])
-    |> filter_by_amount_range(filters[:min_fine], filters[:max_fine])
-    |> search_by_text(filters[:search])
-    |> order_by(^filters[:sort_by])
+  @doc """
+  Search cases using Ash's powerful query capabilities
+  """
+  def search_cases(filters) do
+    Enforcement.list_cases(
+      filter: build_complex_filter(filters),
+      sort: build_sort(filters[:sort_by]),
+      load: [:offender, :agency, :breaches],
+      page: [limit: filters[:limit] || 50]
+    )
+  end
+  
+  defp build_complex_filter(filters) do
+    base_filter = []
+    
+    base_filter
+    |> maybe_add_filter(:agency_id, filters[:agency_id])
+    |> maybe_add_date_filter(:offence_action_date, filters[:from_date], :>=)
+    |> maybe_add_date_filter(:offence_action_date, filters[:to_date], :<=)
+    |> maybe_add_range_filter(:total_penalty, filters[:min_fine], filters[:max_fine])
+    |> maybe_add_text_search(filters[:search])
+  end
+  
+  defp maybe_add_text_search(filter, nil), do: filter
+  defp maybe_add_text_search(filter, search_term) do
+    # Ash supports complex OR conditions
+    [or: [
+      [offender: [name: [ilike: "%#{search_term}%"]]],
+      [regulator_id: [ilike: "%#{search_term}%"]],
+      [offence_breaches: [ilike: "%#{search_term}%"]]
+    ] | filter]
+  end
+  
+  @doc """
+  Use Ash aggregates for analytics
+  """
+  def enforcement_statistics(filters \\ %{}) do
+    %{
+      total_cases: Enforcement.count_cases!(filter: filters),
+      total_fines: Enforcement.aggregate_cases!(:sum, :offence_fine, filter: filters),
+      avg_fine: Enforcement.aggregate_cases!(:avg, :offence_fine, filter: filters),
+      top_offenders: get_top_offenders(filters)
+    }
   end
 end
 ```
@@ -559,53 +656,77 @@ def handle_info({:load_cases, params}, socket) do
 end
 ```
 
-### Database Optimization
+### Database Optimization with Ash
 
-#### 1. Indexes for Common Queries
-```sql
--- Text search
-CREATE INDEX idx_cases_offender_name_gin ON cases USING gin(to_tsvector('english', offender_name));
+#### 1. Ash-Generated Indexes
+```elixir
+# Ash automatically creates indexes for:
+# - Primary keys (UUID)
+# - Foreign keys (agency_id, offender_id, case_id)
+# - Unique constraints (identities)
 
--- Date range queries
-CREATE INDEX idx_cases_action_date ON cases(offence_action_date);
+# Additional custom indexes in Ash migrations:
+defmodule EhsEnforcement.Repo.Migrations.AddSearchIndexes do
+  use Ecto.Migration
 
--- Composite indexes for filtering
-CREATE INDEX idx_cases_agency_date ON cases(agency_id, offence_action_date DESC);
+  def up do
+    # Full-text search index
+    execute """
+    CREATE INDEX cases_search_idx ON cases USING gin(
+      to_tsvector('english', 
+        COALESCE(regulator_id, '') || ' ' || 
+        COALESCE(offence_breaches, '')
+      )
+    )
+    """
+    
+    # Composite index for common queries
+    create index(:cases, [:agency_id, :offence_action_date])
+    create index(:offenders, [:name, :local_authority])
+  end
+end
 ```
 
-#### 2. Materialized Views for Statistics
-```sql
-CREATE MATERIALIZED VIEW agency_statistics AS
-SELECT 
-  a.id as agency_id,
-  COUNT(DISTINCT c.id) as total_cases,
-  COUNT(DISTINCT n.id) as total_notices,
-  SUM(c.offence_fine) as total_fines,
-  MAX(c.last_synced_at) as last_case_sync,
-  MAX(n.last_synced_at) as last_notice_sync
-FROM agencies a
-LEFT JOIN cases c ON c.agency_id = a.id
-LEFT JOIN notices n ON n.agency_id = a.id
-GROUP BY a.id;
+#### 2. Ash Calculations for Statistics
+```elixir
+# Instead of materialized views, use Ash calculations
+defmodule EhsEnforcement.Enforcement.Agency do
+  # ... existing code ...
+  
+  calculations do
+    calculate :total_cases, :integer do
+      # Ash handles the aggregate query
+      aggregate [:cases], :count
+    end
+    
+    calculate :total_fines, :decimal do
+      aggregate [:cases], :sum, field: :offence_fine
+    end
+    
+    calculate :last_sync, :utc_datetime do
+      aggregate [:cases], :max, field: :last_synced_at
+    end
+  end
+end
 
-CREATE MATERIALIZED VIEW offender_statistics AS
-SELECT 
-  o.id as offender_id,
-  o.name,
-  o.local_authority,
-  COUNT(DISTINCT c.id) as case_count,
-  COUNT(DISTINCT n.id) as notice_count,
-  SUM(c.offence_fine + c.offence_costs) as total_penalties,
-  MIN(LEAST(c.offence_action_date, n.notice_date)) as first_enforcement_date,
-  MAX(GREATEST(c.offence_action_date, n.notice_date)) as last_enforcement_date
-FROM offenders o
-LEFT JOIN cases c ON c.offender_id = o.id
-LEFT JOIN notices n ON n.offender_id = o.id
-GROUP BY o.id, o.name, o.local_authority;
-
--- Refresh periodically
-REFRESH MATERIALIZED VIEW CONCURRENTLY agency_statistics;
-REFRESH MATERIALIZED VIEW CONCURRENTLY offender_statistics;
+# For complex statistics, use Ash aggregates
+defmodule EhsEnforcement.Analytics do
+  alias EhsEnforcement.Enforcement
+  
+  def agency_statistics do
+    Enforcement.list_agencies!(
+      load: [:total_cases, :total_fines, :last_sync]
+    )
+  end
+  
+  def offender_rankings do
+    Enforcement.list_offenders!(
+      sort: [total_fines: :desc],
+      limit: 100,
+      load: [:enforcement_count, :total_cases, :total_notices]
+    )
+  end
+end
 ```
 
 ### UI/UX Considerations
