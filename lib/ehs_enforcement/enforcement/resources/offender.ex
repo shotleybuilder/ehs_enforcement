@@ -50,7 +50,8 @@ defmodule EhsEnforcement.Enforcement.Offender do
     
     create :create do
       primary? true
-      accept [:name, :local_authority, :postcode, :main_activity, :business_type, :industry]
+      accept [:name, :local_authority, :postcode, :main_activity, :business_type, :industry,
+              :first_seen_date, :last_seen_date, :total_cases, :total_notices, :total_fines]
       
       change fn changeset, _context ->
         case Ash.Changeset.get_attribute(changeset, :name) do

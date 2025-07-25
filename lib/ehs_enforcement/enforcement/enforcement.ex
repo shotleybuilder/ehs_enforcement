@@ -30,9 +30,8 @@ defmodule EhsEnforcement.Enforcement do
   end
 
   def get_agency!(id) do
-    agency = EhsEnforcement.Enforcement.Agency
+    EhsEnforcement.Enforcement.Agency
     |> Ash.get!(id)
-    {:ok, agency}
   end
 
   def update_agency(agency, attrs) do
@@ -95,9 +94,24 @@ defmodule EhsEnforcement.Enforcement do
   end
 
   def get_case!(id, opts \\ []) do
-    case_record = EhsEnforcement.Enforcement.Case
+    EhsEnforcement.Enforcement.Case
     |> Ash.get!(id, opts)
-    {:ok, case_record}
+  end
+
+  def change_case(case_record, attrs \\ %{}) do
+    case_record
+    |> Ash.Changeset.for_update(:update, attrs)
+  end
+
+  def update_case(case_record, attrs) do
+    case_record
+    |> Ash.Changeset.for_update(:update, attrs)
+    |> Ash.update()
+  end
+
+  def destroy_case!(case_record) do
+    case_record
+    |> Ash.destroy!()
   end
 
   def sync_case(case_record, attrs) do
@@ -231,20 +245,27 @@ defmodule EhsEnforcement.Enforcement do
 
   # Notice functions
   def create_notice(attrs) do
-    # Since Notice resource doesn't exist yet, return a placeholder
-    # This will be implemented when Notice resource is added
-    {:ok, %{
-      notice_id: attrs[:notice_id],
-      agency_code: attrs[:agency_code],
-      offender_name: get_in(attrs, [:offender_attrs, :name]),
-      notice_type: attrs[:notice_type]
-    }}
+    EhsEnforcement.Enforcement.Notice
+    |> Ash.Changeset.for_create(:create, attrs)
+    |> Ash.create()
   end
 
-  def list_notices(_opts \\ []) do
-    # Since Notice resource doesn't exist yet, return empty list
-    # This will be implemented when Notice resource is added
-    {:ok, []}
+  def list_notices(opts \\ []) do
+    query = EhsEnforcement.Enforcement.Notice
+    
+    # Apply filters if provided
+    query = case opts[:filter] do
+      nil -> query
+      filters -> Ash.Query.filter(query, ^filters)
+    end
+    
+    # Apply load if provided
+    query = case opts[:load] do
+      nil -> query
+      loads -> Ash.Query.load(query, loads)
+    end
+    
+    Ash.read(query)
   end
 
   def list_notices!(opts \\ []) do
@@ -252,5 +273,12 @@ defmodule EhsEnforcement.Enforcement do
       {:ok, notices} -> notices
       {:error, error} -> raise error
     end
+  end
+
+  # Breach functions
+  def create_breach(attrs) do
+    EhsEnforcement.Enforcement.Breach
+    |> Ash.Changeset.for_create(:create, attrs)
+    |> Ash.create()
   end
 end

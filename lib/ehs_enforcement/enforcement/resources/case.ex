@@ -58,7 +58,8 @@ defmodule EhsEnforcement.Enforcement.Case do
       primary? true
       accept [:airtable_id, :regulator_id, :offence_result, :offence_fine, :offence_costs,
               :offence_action_date, :offence_hearing_date, :offence_breaches, 
-              :offence_breaches_clean, :regulator_function, :regulator_url, :related_cases]
+              :offence_breaches_clean, :regulator_function, :regulator_url, :related_cases,
+              :last_synced_at]
       
       argument :agency_code, :atom
       argument :offender_attrs, :map

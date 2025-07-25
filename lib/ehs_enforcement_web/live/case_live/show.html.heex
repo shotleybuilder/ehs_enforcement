@@ -1,0 +1,377 @@
+<div class="min-h-screen bg-gray-50">
+  <%= if @loading do %>
+    <div class="flex items-center justify-center min-h-screen">
+      <div class="text-center">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p class="mt-2 text-sm text-gray-500">Loading case details...</p>
+      </div>
+    </div>
+  <% else %>
+    <%= if @error == :not_found do %>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="text-center">
+          <.icon name="hero-exclamation-triangle" class="mx-auto h-12 w-12 text-gray-400" />
+          <h3 class="mt-2 text-sm font-medium text-gray-900">Case Not Found</h3>
+          <p class="mt-1 text-sm text-gray-500">The requested case could not be found.</p>
+          <div class="mt-6">
+            <.link
+              navigate={~p"/cases"}
+              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Back to Cases
+            </.link>
+          </div>
+        </div>
+      </div>
+    <% else %>
+      <%= if @case do %>
+        <!-- Header -->
+        <div class="bg-white shadow">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="py-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <nav class="flex" aria-label="Breadcrumb">
+                    <ol class="flex items-center space-x-4">
+                      <li>
+                        <.link navigate={~p"/cases"} class="text-gray-400 hover:text-gray-500">
+                          <.icon name="hero-home" class="flex-shrink-0 h-5 w-5" />
+                          <span class="sr-only">Cases</span>
+                        </.link>
+                      </li>
+                      <li>
+                        <div class="flex items-center">
+                          <.icon name="hero-chevron-right" class="flex-shrink-0 h-5 w-5 text-gray-400" />
+                          <.link navigate={~p"/cases"} class="ml-4 text-sm font-medium text-gray-500 hover:text-gray-700">
+                            Cases
+                          </.link>
+                        </div>
+                      </li>
+                      <li>
+                        <div class="flex items-center">
+                          <.icon name="hero-chevron-right" class="flex-shrink-0 h-5 w-5 text-gray-400" />
+                          <span class="ml-4 text-sm font-medium text-gray-500">
+                            <%= @case.regulator_id %>
+                          </span>
+                        </div>
+                      </li>
+                    </ol>
+                  </nav>
+                  
+                  <div class="mt-2">
+                    <h1 class="text-3xl font-bold text-gray-900">Case Details</h1>
+                    <p class="mt-1 text-sm text-gray-500">
+                      Case <%= @case.regulator_id %> · <%= @case.agency.name %>
+                    </p>
+                  </div>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                  <!-- Share Dropdown -->
+                  <div class="relative inline-block text-left" x-data="{ open: false }">
+                    <button
+                      @click="open = !open"
+                      class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      <.icon name="hero-share" class="h-4 w-4 mr-2" />
+                      Share
+                      <.icon name="hero-chevron-down" class="h-4 w-4 ml-2" />
+                    </button>
+                    
+                    <div
+                      x-show="open"
+                      @click.away="open = false"
+                      x-transition
+                      class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
+                    >
+                      <div class="py-1">
+                        <button
+                          phx-click="share_case"
+                          phx-value-method="url"
+                          class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <.icon name="hero-link" class="h-4 w-4 mr-2 inline" />
+                          Copy URL
+                        </button>
+                        <button
+                          phx-click="share_case"
+                          phx-value-method="email"
+                          class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <.icon name="hero-envelope" class="h-4 w-4 mr-2 inline" />
+                          Email
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Export Button -->
+                  <button
+                    phx-click="export_case"
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <.icon name="hero-arrow-down-tray" class="h-4 w-4 mr-2" />
+                    Export
+                  </button>
+                  
+                  <!-- Edit Button -->
+                  <.link
+                    navigate={~p"/cases/#{@case.id}/edit"}
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <.icon name="hero-pencil" class="h-4 w-4 mr-2" />
+                    Edit
+                  </.link>
+                  
+                  <!-- Delete Button -->
+                  <button
+                    phx-click="delete_case"
+                    data-confirm="Are you sure you want to delete this case? This action cannot be undone."
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    <.icon name="hero-trash" class="h-4 w-4 mr-2" />
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main Case Information -->
+            <div class="lg:col-span-2">
+              <!-- Case Overview -->
+              <div class="bg-white shadow rounded-lg mb-6">
+                <div class="px-6 py-5">
+                  <h3 class="text-lg font-medium text-gray-900 mb-4">Case Overview</h3>
+                  
+                  <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                    <div>
+                      <dt class="text-sm font-medium text-gray-500">Case ID</dt>
+                      <dd class="mt-1 text-sm text-gray-900 font-mono"><%= @case.regulator_id %></dd>
+                    </div>
+                    
+                    <div>
+                      <dt class="text-sm font-medium text-gray-500">Agency</dt>
+                      <dd class="mt-1 text-sm text-gray-900">
+                        <%= @case.agency.name %>
+                        <span class="text-gray-500">(<%= String.upcase(to_string(@case.agency.code)) %>)</span>
+                      </dd>
+                    </div>
+                    
+                    <div>
+                      <dt class="text-sm font-medium text-gray-500">Offense Date</dt>
+                      <dd class="mt-1 text-sm text-gray-900"><%= format_date(@case.offence_action_date) %></dd>
+                    </div>
+                    
+                    <div>
+                      <dt class="text-sm font-medium text-gray-500">Fine Amount</dt>
+                      <dd class="mt-1 text-lg font-semibold text-gray-900"><%= format_currency(@case.offence_fine) %></dd>
+                    </div>
+                    
+                    <div class="sm:col-span-2">
+                      <dt class="text-sm font-medium text-gray-500">Last Synced</dt>
+                      <dd class="mt-1 text-sm text-gray-900"><%= format_datetime(@case.last_synced_at) %></dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+              
+              <!-- Offense Details -->
+              <div class="bg-white shadow rounded-lg mb-6">
+                <div class="px-6 py-5">
+                  <h3 class="text-lg font-medium text-gray-900 mb-4">Offense Details</h3>
+                  
+                  <div class="prose max-w-none">
+                    <p class="text-sm text-gray-700 whitespace-pre-wrap"><%= @case.offence_breaches || "No details available" %></p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Notices -->
+              <%= if false do %>
+                <div class="bg-white shadow rounded-lg mb-6">
+                  <div class="px-6 py-5">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">
+                      Notices (<%= length(@case.notices) %>)
+                    </h3>
+                    
+                    <div class="space-y-4">
+                      <%= for notice <- @case.notices do %>
+                        <div class="border rounded-lg p-4">
+                          <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-sm font-medium text-gray-900">
+                              <%= format_notice_type(notice.notice_type) %>
+                            </h4>
+                            <span class={"inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium #{compliance_status_class(notice.compliance_status)}"}>
+                              <%= format_compliance_status(notice.compliance_status) %>
+                            </span>
+                          </div>
+                          
+                          <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span class="text-gray-500">Issue Date:</span>
+                              <span class="text-gray-900"><%= format_date(notice.issue_date) %></span>
+                            </div>
+                            <div>
+                              <span class="text-gray-500">Compliance Date:</span>
+                              <span class="text-gray-900"><%= format_date(notice.compliance_date) %></span>
+                            </div>
+                          </div>
+                          
+                          <%= if notice.description do %>
+                            <p class="mt-2 text-sm text-gray-700"><%= notice.description %></p>
+                          <% end %>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+              
+              <!-- Regulatory Breaches -->
+              <%= if false do %>
+                <div class="bg-white shadow rounded-lg mb-6">
+                  <div class="px-6 py-5">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">
+                      Regulatory Breaches (<%= length(@case.breaches) %>)
+                    </h3>
+                    
+                    <div class="space-y-4">
+                      <%= for breach <- @case.breaches do %>
+                        <div class="border rounded-lg p-4">
+                          <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-sm font-medium text-gray-900">
+                              <%= breach.regulation_section %>
+                            </h4>
+                            <span class={"inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium #{severity_class(breach.severity)}"}>
+                              <%= format_severity(breach.severity) %>
+                            </span>
+                          </div>
+                          
+                          <p class="text-sm text-gray-700"><%= breach.description %></p>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="lg:col-span-1">
+              <!-- Offender Information -->
+              <div class="bg-white shadow rounded-lg mb-6">
+                <div class="px-6 py-5">
+                  <h3 class="text-lg font-medium text-gray-900 mb-4">Offender Information</h3>
+                  
+                  <dl class="space-y-3">
+                    <div>
+                      <dt class="text-sm font-medium text-gray-500">Company Name</dt>
+                      <dd class="mt-1 text-sm text-gray-900"><%= @case.offender.name %></dd>
+                    </div>
+                    
+                    <%= if @case.offender.local_authority do %>
+                      <div>
+                        <dt class="text-sm font-medium text-gray-500">Local Authority</dt>
+                        <dd class="mt-1 text-sm text-gray-900"><%= @case.offender.local_authority %></dd>
+                      </div>
+                    <% end %>
+                    
+                    <%= if @case.offender.postcode do %>
+                      <div>
+                        <dt class="text-sm font-medium text-gray-500">Postcode</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-mono"><%= @case.offender.postcode %></dd>
+                      </div>
+                    <% end %>
+                  </dl>
+                  
+                  <div class="mt-6">
+                    <.link
+                      navigate={~p"/offenders/#{@case.offender.id}"}
+                      class="text-sm text-blue-600 hover:text-blue-500"
+                    >
+                      View full offender profile →
+                    </.link>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Case Timeline -->
+              <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-5">
+                  <h3 class="text-lg font-medium text-gray-900 mb-4">Case Timeline</h3>
+                  
+                  <div class="flow-root">
+                    <ul class="-mb-8">
+                      <%= for {event, index} <- Enum.with_index(build_case_timeline(@case)) do %>
+                        <li>
+                          <div class="relative pb-8">
+                            <%= if index < length(build_case_timeline(@case)) - 1 do %>
+                              <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                            <% end %>
+                            
+                            <div class="relative flex space-x-3">
+                              <div>
+                                <span class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
+                                  <.icon name={"hero-#{event.icon}"} class="h-4 w-4 text-white" />
+                                </span>
+                              </div>
+                              
+                              <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                                <div>
+                                  <p class="text-sm text-gray-900 font-medium"><%= event.title %></p>
+                                  <p class="mt-0.5 text-sm text-gray-500"><%= event.description %></p>
+                                </div>
+                                <div class="text-right text-sm whitespace-nowrap text-gray-500">
+                                  <%= format_date(event.date) %>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </li>
+                      <% end %>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>
+
+<script>
+// Copy to clipboard functionality
+window.addEventListener('phx:copy_to_clipboard', (e) => {
+  navigator.clipboard.writeText(e.detail.text).then(() => {
+    console.log('Copied to clipboard');
+  }).catch(err => {
+    console.error('Failed to copy: ', err);
+  });
+});
+
+// Open URL functionality
+window.addEventListener('phx:open_url', (e) => {
+  window.open(e.detail.url, '_blank');
+});
+
+// Download functionality
+window.addEventListener('phx:download', (e) => {
+  const { filename, content, mime_type } = e.detail;
+  const blob = new Blob([content], { type: mime_type });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+});
+</script>

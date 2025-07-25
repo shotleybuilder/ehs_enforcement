@@ -22,7 +22,7 @@ defmodule EhsEnforcement.Enforcement.Agency do
     
     attribute :name, :string, allow_nil?: false
     attribute :base_url, :string
-    attribute :active, :boolean, default: true
+    attribute :enabled, :boolean, default: true
     
     create_timestamp :inserted_at
     update_timestamp :updated_at
@@ -42,12 +42,12 @@ defmodule EhsEnforcement.Enforcement.Agency do
     
     create :create do
       primary? true
-      accept [:code, :name, :base_url, :active]
+      accept [:code, :name, :base_url, :enabled]
     end
     
     update :update do
       primary? true
-      accept [:name, :base_url, :active]
+      accept [:name, :base_url, :enabled]
     end
   end
 
