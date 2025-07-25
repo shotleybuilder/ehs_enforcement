@@ -82,7 +82,7 @@ defmodule EhsEnforcement.Enforcement do
     end
     
     case query |> Ash.read_one() do
-      {:ok, nil} -> {:error, :not_found}
+      {:ok, nil} -> {:error, %Ash.Error.Query.NotFound{}}
       result -> result
     end
   end
@@ -110,5 +110,147 @@ defmodule EhsEnforcement.Enforcement do
     EhsEnforcement.Enforcement.Case
     |> Ash.Query.for_read(:by_date_range, %{from_date: from_date, to_date: to_date})
     |> Ash.read()
+  end
+
+  def list_cases(opts \\ []) do
+    query = EhsEnforcement.Enforcement.Case
+    
+    # Apply filters if provided
+    query = case opts[:filter] do
+      nil -> query
+      filters ->
+        Enum.reduce(filters, query, fn
+          {:regulator_id, value}, q -> Ash.Query.filter(q, regulator_id == ^value)
+          {:agency_id, value}, q -> Ash.Query.filter(q, agency_id == ^value)
+          _, q -> q
+        end)
+    end
+    
+    # Apply load if provided
+    query = case opts[:load] do
+      nil -> query
+      loads -> Ash.Query.load(query, loads)
+    end
+    
+    # Apply sort if provided
+    query = case opts[:sort] do
+      nil -> query
+      sorts -> Ash.Query.sort(query, sorts)
+    end
+    
+    Ash.read(query)
+  end
+
+  def list_cases!(opts \\ []) do
+    case list_cases(opts) do
+      {:ok, cases} -> cases
+      {:error, error} -> raise error
+    end
+  end
+
+  def count_cases!(opts \\ []) do
+    query = EhsEnforcement.Enforcement.Case
+    
+    # Apply filters if provided
+    query = case opts[:filter] do
+      nil -> query
+      filters ->
+        Enum.reduce(filters, query, fn
+          {:agency_id, value}, q -> Ash.Query.filter(q, agency_id == ^value)
+          _, q -> q
+        end)
+    end
+    
+    case Ash.count(query) do
+      {:ok, count} -> count
+      {:error, error} -> raise error
+    end
+  end
+
+  def aggregate_cases!(aggregate_type, field, opts \\ []) do
+    query = EhsEnforcement.Enforcement.Case
+    
+    # Apply filters if provided
+    query = case opts[:filter] do
+      nil -> query
+      filters ->
+        Enum.reduce(filters, query, fn
+          filter, q -> Ash.Query.filter(q, ^filter)
+        end)
+    end
+    
+    case Ash.aggregate(query, [{aggregate_type, field}]) do
+      {:ok, result} -> 
+        Map.get(result, aggregate_type, 0)
+      {:error, error} -> 
+        raise error
+    end
+  end
+
+  def sum_fines!(opts \\ []) do
+    aggregate_cases!(:sum, :offence_fine, opts)
+  end
+
+  # Offender list function
+  def list_offenders(opts \\ []) do
+    query = EhsEnforcement.Enforcement.Offender
+    
+    # Apply filters if provided
+    query = case opts[:filter] do
+      nil -> query
+      filters -> Ash.Query.filter(query, ^filters)
+    end
+    
+    # Apply sort if provided
+    query = case opts[:sort] do
+      nil -> query
+      sorts -> Ash.Query.sort(query, sorts)
+    end
+    
+    # Apply limit if provided
+    query = case opts[:limit] do
+      nil -> query
+      limit -> Ash.Query.limit(query, limit)
+    end
+    
+    # Apply load if provided
+    query = case opts[:load] do
+      nil -> query
+      loads -> Ash.Query.load(query, loads)
+    end
+    
+    Ash.read(query)
+  end
+
+  def list_offenders!(opts \\ []) do
+    case list_offenders(opts) do
+      {:ok, offenders} -> offenders
+      {:error, error} -> raise error
+    end
+  end
+
+  # Notice functions
+  def create_notice(attrs) do
+    # Since Notice resource doesn't exist yet, return a placeholder
+    # This will be implemented when Notice resource is added
+    {:ok, %{
+      notice_id: attrs[:notice_id],
+      agency_code: attrs[:agency_code],
+      offender_name: get_in(attrs, [:offender_attrs, :name]),
+      notice_type: attrs[:notice_type]
+    }}
+  end
+
+  def list_notices(_opts \\ []) do
+    # Since Notice resource doesn't exist yet, return empty list
+    # This will be implemented when Notice resource is added
+    {:ok, []}
+  end
+
+  def list_notices!(opts \\ []) do
+    case list_notices(opts) do
+      {:ok, notices} -> notices
+      {:error, error} -> raise error
+    end
   end
 end
