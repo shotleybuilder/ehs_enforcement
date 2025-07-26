@@ -234,29 +234,40 @@ defmodule EhsEnforcementWeb.DashboardLive do
     filter = if filter_agency, do: [agency_id: filter_agency], else: []
     offset = (page - 1) * page_size
     
-    query_opts = [
-      filter: filter,
-      sort: [offence_action_date: :desc],
-      page: [limit: page_size, offset: offset, count: true],
-      load: [:offender, :agency]
-    ]
-
     try do
-      result = Enforcement.list_cases!(query_opts)
+      # Load cases
+      cases_query_opts = [
+        filter: filter,
+        sort: [offence_action_date: :desc],
+        load: [:offender, :agency]
+      ]
+      cases = Enforcement.list_cases!(cases_query_opts)
       
-      # Handle paginated results
-      case result do
-        %Ash.Page.Offset{results: results, count: count} -> 
-          {results, count || 0}
-        results when is_list(results) -> 
-          # Fallback: get total count separately
-          total_count = Enforcement.count_cases!(filter: filter)
-          {results, total_count}
-      end
+      # Load notices  
+      notices_query_opts = [
+        filter: filter,
+        sort: [offence_action_date: :desc],
+        load: [:offender, :agency]
+      ]
+      notices = Enforcement.list_notices!(notices_query_opts)
+      
+      # Combine and sort by date
+      all_activity = (cases ++ notices)
+      |> Enum.sort_by(& &1.offence_action_date, {:desc, Date})
+      
+      # Calculate total count
+      total_count = length(all_activity)
+      
+      # Apply pagination
+      paginated_activity = all_activity
+      |> Enum.drop(offset)
+      |> Enum.take(page_size)
+      
+      {paginated_activity, total_count}
     rescue
       error ->
         require Logger
-        Logger.error("Failed to load paginated recent cases: #{inspect(error)}")
+        Logger.error("Failed to load paginated recent activity: #{inspect(error)}")
         {[], 0}
     end
   end
@@ -269,9 +280,10 @@ defmodule EhsEnforcementWeb.DashboardLive do
   defp calculate_stats(agencies, recent_cases, period \\ "week") do
     total_cases = length(recent_cases)
     
-    # Calculate total fines from recent cases
+    # Calculate total fines from recent cases (only cases have fines, not notices)
     total_fines = recent_cases
-      |> Enum.map(& &1.offence_fine || Decimal.new(0))
+      |> Enum.filter(&match?(%EhsEnforcement.Enforcement.Case{}, &1))
+      |> Enum.map(& Map.get(&1, :offence_fine, Decimal.new(0)) || Decimal.new(0))
       |> Enum.reduce(Decimal.new(0), &Decimal.add/2)
     
     # Get agency-specific stats
@@ -297,17 +309,20 @@ defmodule EhsEnforcementWeb.DashboardLive do
     }
   end
 
-  defp format_cases_as_recent_activity(cases) do
-    Enum.map(cases, fn case_record ->
+  defp format_cases_as_recent_activity(activity_records) do
+    Enum.map(activity_records, fn record ->
+      # Detect if this is a case or notice based on struct type
+      is_case = match?(%EhsEnforcement.Enforcement.Case{}, record)
+      
       %{
-        id: case_record.id,
-        type: case_record.offence_action_type || "Court Case",
-        date: case_record.offence_action_date,
-        organization: case_record.offender.name,
-        description: case_record.offence_breaches || "Court case proceeding",
-        fine_amount: case_record.offence_fine,
-        agency_link: case_record.url,
-        is_case: true
+        id: record.id,
+        type: record.offence_action_type || if(is_case, do: "Court Case", else: "Enforcement Notice"),
+        date: record.offence_action_date,
+        organization: record.offender.name,
+        description: record.offence_breaches || if(is_case, do: "Court case proceeding", else: "Enforcement notice issued"),
+        fine_amount: if(is_case, do: Map.get(record, :offence_fine, nil), else: nil),
+        agency_link: record.url,
+        is_case: is_case
       }
     end)
   end
