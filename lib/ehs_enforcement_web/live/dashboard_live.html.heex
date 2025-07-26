@@ -216,7 +216,7 @@
                     <%= activity.description || "—" %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <%= RecentActivity.format_fine_amount(activity.fine_amount) %>
+                    <%= EhsEnforcement.Enforcement.RecentActivity.format_fine_amount(activity.fine_amount) %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm">
                     <%= if activity.agency_link do %>

@@ -36,14 +36,11 @@ defmodule EhsEnforcementWeb.DashboardLive do
   def handle_params(params, _url, socket) do
     recent_activity_page = String.to_integer(params["recent_activity_page"] || "1")
     
-    # Load recent activity with current filter
-    recent_activity = RecentActivity.list_recent_activity(
-      filter_type: socket.assigns[:recent_activity_filter] || :all,
-      limit: socket.assigns.recent_activity_page_size
-    )
-    
     # Load data first to get total count
     {recent_cases, total_recent_cases} = load_recent_cases_paginated(socket.assigns.filter_agency, recent_activity_page, socket.assigns.recent_activity_page_size)
+    
+    # Convert cases to recent activity format for the table
+    recent_activity = format_cases_as_recent_activity(recent_cases)
     
     # Calculate stats
     stats = calculate_stats(socket.assigns.agencies, recent_cases, socket.assigns.time_period)
@@ -60,13 +57,14 @@ defmodule EhsEnforcementWeb.DashboardLive do
     end
     
     {final_recent_cases, final_total_recent_cases} = final_data
+    final_recent_activity = format_cases_as_recent_activity(final_recent_cases)
     
     {:noreply,
      socket
      |> assign(:recent_activity_page, valid_page)
      |> assign(:recent_cases, final_recent_cases)
      |> assign(:total_recent_cases, final_total_recent_cases)
-     |> assign(:recent_activity, recent_activity)
+     |> assign(:recent_activity, final_recent_activity)
      |> assign(:stats, stats)}
   end
 
@@ -89,12 +87,14 @@ defmodule EhsEnforcementWeb.DashboardLive do
   def handle_event("filter_by_agency", %{"agency" => agency_id}, socket) do
     filter_agency = if agency_id == "", do: nil, else: agency_id
     {recent_cases, total_recent_cases} = load_recent_cases_paginated(filter_agency, 1, socket.assigns.recent_activity_page_size)
+    recent_activity = format_cases_as_recent_activity(recent_cases)
     
     {:noreply,
      socket
      |> assign(:filter_agency, filter_agency)
      |> assign(:recent_cases, recent_cases)
      |> assign(:total_recent_cases, total_recent_cases)
+     |> assign(:recent_activity, recent_activity)
      |> assign(:recent_activity_page, 1)
      |> push_patch(to: ~p"/dashboard")}
   end
@@ -128,6 +128,7 @@ defmodule EhsEnforcementWeb.DashboardLive do
   def handle_event("change_time_period", %{"period" => period}, socket) do
     agencies = socket.assigns.agencies
     {recent_cases, total_recent_cases} = load_recent_cases_paginated(socket.assigns.filter_agency, socket.assigns.recent_activity_page, socket.assigns.recent_activity_page_size)
+    recent_activity = format_cases_as_recent_activity(recent_cases)
     stats = calculate_stats(agencies, recent_cases, period)
     
     {:noreply,
@@ -135,6 +136,7 @@ defmodule EhsEnforcementWeb.DashboardLive do
      |> assign(:time_period, period)
      |> assign(:recent_cases, recent_cases)
      |> assign(:total_recent_cases, total_recent_cases)
+     |> assign(:recent_activity, recent_activity)
      |> assign(:stats, stats)}
   end
 
@@ -142,15 +144,18 @@ defmodule EhsEnforcementWeb.DashboardLive do
   def handle_event("filter_recent_activity", %{"type" => type}, socket) do
     filter_type = String.to_existing_atom(type)
     
-    recent_activity = RecentActivity.list_recent_activity(
-      filter_type: filter_type,
-      limit: socket.assigns.recent_activity_page_size
-    )
+    # For now, we only support filtering cases since that's what we have data for
+    # In the future, this could filter between cases and notices from different sources
+    {recent_cases, total_recent_cases} = load_recent_cases_paginated(socket.assigns.filter_agency, 1, socket.assigns.recent_activity_page_size)
+    recent_activity = format_cases_as_recent_activity(recent_cases)
     
     {:noreply,
      socket
      |> assign(:recent_activity_filter, filter_type)
-     |> assign(:recent_activity, recent_activity)}
+     |> assign(:recent_activity, recent_activity)
+     |> assign(:recent_cases, recent_cases)
+     |> assign(:total_recent_cases, total_recent_cases)
+     |> assign(:recent_activity_page, 1)}
   end
 
   @impl true
@@ -177,6 +182,7 @@ defmodule EhsEnforcementWeb.DashboardLive do
     # Reload data after sync
     agencies = Enforcement.list_agencies!()
     {recent_cases, total_recent_cases} = load_recent_cases_paginated(socket.assigns.filter_agency, socket.assigns.recent_activity_page, socket.assigns.recent_activity_page_size)
+    recent_activity = format_cases_as_recent_activity(recent_cases)
     stats = calculate_stats(agencies, recent_cases, socket.assigns.time_period)
     
     sync_status = Map.put(socket.assigns.sync_status, agency_code, %{status: "completed", progress: 100})
@@ -186,6 +192,7 @@ defmodule EhsEnforcementWeb.DashboardLive do
      |> assign(:agencies, agencies)
      |> assign(:recent_cases, recent_cases)
      |> assign(:total_recent_cases, total_recent_cases)
+     |> assign(:recent_activity, recent_activity)
      |> assign(:stats, stats)
      |> assign(:sync_status, sync_status)}
   end
@@ -201,12 +208,14 @@ defmodule EhsEnforcementWeb.DashboardLive do
   def handle_info({:case_created, _case}, socket) do
     # Reload recent cases when a new case is created
     {recent_cases, total_recent_cases} = load_recent_cases_paginated(socket.assigns.filter_agency, socket.assigns.recent_activity_page, socket.assigns.recent_activity_page_size)
+    recent_activity = format_cases_as_recent_activity(recent_cases)
     stats = calculate_stats(socket.assigns.agencies, recent_cases, socket.assigns.time_period)
     
     {:noreply,
      socket
      |> assign(:recent_cases, recent_cases)
      |> assign(:total_recent_cases, total_recent_cases)
+     |> assign(:recent_activity, recent_activity)
      |> assign(:stats, stats)}
   end
 
@@ -286,5 +295,20 @@ defmodule EhsEnforcementWeb.DashboardLive do
       agency_stats: agency_stats,
       period: period
     }
+  end
+
+  defp format_cases_as_recent_activity(cases) do
+    Enum.map(cases, fn case_record ->
+      %{
+        id: case_record.id,
+        type: case_record.offence_action_type || "Court Case",
+        date: case_record.offence_action_date,
+        organization: case_record.offender.name,
+        description: case_record.offence_breaches || "Court case proceeding",
+        fine_amount: case_record.offence_fine,
+        agency_link: case_record.url,
+        is_case: true
+      }
+    end)
   end
 end
