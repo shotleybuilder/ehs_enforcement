@@ -9,13 +9,13 @@ defmodule EhsEnforcementWeb.Components.AgencyCard do
           <h3 class="text-lg font-semibold text-gray-900"><%= @agency.name %></h3>
           <span class={[
             "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2",
-            @agency.active && "bg-green-100 text-green-800",
-            !@agency.active && "bg-gray-100 text-gray-800"
+            @agency.enabled && "bg-green-100 text-green-800",
+            !@agency.enabled && "bg-gray-100 text-gray-800"
           ]}>
-            <%= if @agency.active, do: "Active", else: "Inactive" %>
+            <%= if @agency.enabled, do: "Active", else: "Inactive" %>
           </span>
         </div>
-        <%= if @agency.active do %>
+        <%= if @agency.enabled do %>
           <button
             phx-click="sync_agency"
             phx-value-agency={@agency.code}

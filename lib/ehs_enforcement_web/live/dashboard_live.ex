@@ -149,7 +149,7 @@ defmodule EhsEnforcementWeb.DashboardLive do
     %{
       total_cases: total_cases,
       total_fines: total_fines,
-      active_agencies: Enum.count(agencies, & &1.active),
+      active_agencies: Enum.count(agencies, & &1.enabled),
       agency_stats: agency_stats,
       period: period
     }

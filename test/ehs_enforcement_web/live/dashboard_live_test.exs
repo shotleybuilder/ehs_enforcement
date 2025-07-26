@@ -194,7 +194,7 @@ defmodule EhsEnforcementWeb.DashboardLiveTest do
       {:ok, view, _html} = live(conn, "/dashboard")
 
       # Should have sync button for each agency
-      sync_button = element(view, "[data-testid='sync-button'][phx-value-agency='hse']")
+      sync_button = element(view, "[data-testid='sync-button-hse']")
       assert has_element?(sync_button)
       assert render(sync_button) =~ "Sync Now"
     end

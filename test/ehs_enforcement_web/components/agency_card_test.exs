@@ -11,7 +11,7 @@ defmodule EhsEnforcementWeb.Components.AgencyCardTest do
       {:ok, agency} = Enforcement.create_agency(%{
         code: :hse,
         name: "Health and Safety Executive",
-        active: true
+        enabled: true
       })
 
       stats = %{
@@ -81,7 +81,7 @@ defmodule EhsEnforcementWeb.Components.AgencyCardTest do
       {:ok, disabled_agency} = Enforcement.create_agency(%{
         code: :onr,
         name: "Office for Nuclear Regulation", 
-        active: false
+        enabled: false
       })
 
       stats = %{total_cases: 0, total_fines: Decimal.new("0"), last_sync: nil}
@@ -308,7 +308,7 @@ defmodule EhsEnforcementWeb.Components.AgencyCardTest do
       {:ok, long_name_agency} = Enforcement.create_agency(%{
         code: :test,
         name: "This is a Very Long Agency Name That Might Cause Layout Issues",
-        active: true
+        enabled: true
       })
 
       html = render_component(&AgencyCard.agency_card/1, %{
@@ -327,7 +327,7 @@ defmodule EhsEnforcementWeb.Components.AgencyCardTest do
         id: UUID.uuid4(),
         code: nil,
         name: "Test Agency",
-        active: true
+        enabled: true
       }
 
       html = render_component(&AgencyCard.agency_card/1, %{
@@ -398,7 +398,7 @@ defmodule EhsEnforcementWeb.Components.AgencyCardTest do
       {:ok, agency} = Enforcement.create_agency(%{
         code: :test_perf,
         name: "Performance Test Agency",
-        active: true
+        enabled: true
       })
 
       # Render the component many times with changing stats
