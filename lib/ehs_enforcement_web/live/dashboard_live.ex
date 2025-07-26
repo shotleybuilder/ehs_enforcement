@@ -144,17 +144,29 @@ defmodule EhsEnforcementWeb.DashboardLive do
   def handle_event("filter_recent_activity", %{"type" => type}, socket) do
     filter_type = String.to_existing_atom(type)
     
-    # For now, we only support filtering cases since that's what we have data for
-    # In the future, this could filter between cases and notices from different sources
-    {recent_cases, total_recent_cases} = load_recent_cases_paginated(socket.assigns.filter_agency, 1, socket.assigns.recent_activity_page_size)
-    recent_activity = format_cases_as_recent_activity(recent_cases)
+    # Load all recent activity (cases and notices)
+    {all_recent_activity, _total_all} = load_recent_cases_paginated(socket.assigns.filter_agency, 1, socket.assigns.recent_activity_page_size * 10) # Load more to ensure we have enough after filtering
+    
+    # Apply filter based on type
+    filtered_activity = case filter_type do
+      :all -> all_recent_activity
+      :cases -> Enum.filter(all_recent_activity, &match?(%EhsEnforcement.Enforcement.Case{}, &1))
+      :notices -> Enum.filter(all_recent_activity, &match?(%EhsEnforcement.Enforcement.Notice{}, &1))
+    end
+    
+    # Apply pagination to filtered results
+    page_size = socket.assigns.recent_activity_page_size
+    paginated_filtered_activity = Enum.take(filtered_activity, page_size)
+    total_filtered_count = length(filtered_activity)
+    
+    recent_activity = format_cases_as_recent_activity(paginated_filtered_activity)
     
     {:noreply,
      socket
      |> assign(:recent_activity_filter, filter_type)
      |> assign(:recent_activity, recent_activity)
-     |> assign(:recent_cases, recent_cases)
-     |> assign(:total_recent_cases, total_recent_cases)
+     |> assign(:recent_cases, paginated_filtered_activity)
+     |> assign(:total_recent_cases, total_filtered_count)
      |> assign(:recent_activity_page, 1)}
   end
 
