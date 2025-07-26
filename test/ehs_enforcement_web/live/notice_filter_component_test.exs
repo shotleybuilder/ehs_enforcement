@@ -510,7 +510,7 @@ defmodule EhsEnforcementWeb.NoticeFilterComponentTest do
       html = render(view)
       
       # Should implement pagination or result limiting
-      notice_count = html |> String.split("HSE-PERF") |> length() - 1
+      notice_count = (html |> String.split("HSE-PERF") |> length()) - 1
       assert notice_count <= 25 # Should limit displayed results
     end
   end

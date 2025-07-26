@@ -664,6 +664,188 @@ defmodule EhsEnforcementWeb.DashboardLiveTest do
     end
   end
 
+  describe "DashboardLive Recent Activity pagination" do
+    setup do
+      {:ok, agency} = Enforcement.create_agency(%{
+        code: :hse,
+        name: "Health and Safety Executive",
+        enabled: true
+      })
+
+      {:ok, offender} = Enforcement.create_offender(%{
+        name: "Test Company",
+        local_authority: "Test Council"
+      })
+
+      # Create 25 cases to test pagination (more than default page size)
+      cases = Enum.map(1..25, fn i ->
+        {:ok, case} = Enforcement.create_case(%{
+          regulator_id: "HSE-#{String.pad_leading(to_string(i), 3, "0")}",
+          agency_id: agency.id,
+          offender_id: offender.id,
+          offence_action_date: Date.add(~D[2024-01-01], i),
+          offence_fine: Decimal.new("#{i * 100}.00"),
+          offence_breaches: "Breach #{i}",
+          last_synced_at: DateTime.utc_now()
+        })
+        case
+      end)
+
+      %{agency: agency, offender: offender, cases: cases}
+    end
+
+    test "displays recent activity pagination controls when there are more than page size records", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/dashboard")
+
+      # Should show pagination controls
+      assert has_element?(view, "[data-testid='recent-activity-pagination']")
+      assert html =~ "Next"
+      assert html =~ "Previous"
+      
+      # Should show page info
+      assert html =~ "Page 1"
+      assert html =~ "of"
+    end
+
+    test "shows correct number of items on first page", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/dashboard")
+
+      # Should show only 10 items on first page (default page size)
+      recent_activity_items = view
+      |> element("[data-testid='recent-activities']")
+      |> render()
+      |> String.split("data-testid=\"activity-item\"")
+      |> length()
+      |> Kernel.-(1) # Subtract 1 for the split
+
+      assert recent_activity_items == 10
+    end
+
+    test "navigates to next page when next button clicked", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/dashboard")
+
+      # Click next page (using desktop version)
+      view
+      |> element(".hidden.sm\\:flex [data-testid='next-page-btn']")
+      |> render_click()
+
+      # Should be on page 2
+      updated_html = render(view)
+      assert updated_html =~ "Page 2"
+      
+      # Should show different cases (cases 11-20)
+      assert updated_html =~ "HSE-011"
+      refute updated_html =~ "HSE-001" # First page case should not be visible
+    end
+
+    test "navigates to previous page when previous button clicked", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/dashboard")
+
+      # Go to page 2 first
+      view
+      |> element(".hidden.sm\\:flex [data-testid='next-page-btn']")
+      |> render_click()
+
+      # Then go back to page 1
+      view
+      |> element(".hidden.sm\\:flex [data-testid='prev-page-btn']")
+      |> render_click()
+
+      # Should be back on page 1
+      updated_html = render(view)
+      assert updated_html =~ "Page 1"
+      assert updated_html =~ "HSE-025" # Most recent case
+    end
+
+    test "disables previous button on first page", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/dashboard")
+
+      # Previous button should be disabled on first page
+      prev_btn = element(view, ".hidden.sm\\:flex [data-testid='prev-page-btn']")
+      assert render(prev_btn) =~ "disabled" or 
+             render(prev_btn) =~ "cursor-not-allowed" or
+             render(prev_btn) =~ "opacity-50"
+    end
+
+    test "disables next button on last page", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/dashboard")
+
+      # Navigate to last page (page 3 for 25 items with page size 10)
+      view
+      |> element(".hidden.sm\\:flex [data-testid='next-page-btn']")
+      |> render_click()
+
+      view
+      |> element(".hidden.sm\\:flex [data-testid='next-page-btn']")
+      |> render_click()
+
+      # Should be on page 3
+      updated_html = render(view)
+      assert updated_html =~ "Page 3"
+
+      # Next button should be disabled
+      next_btn = element(view, ".hidden.sm\\:flex [data-testid='next-page-btn']")
+      assert render(next_btn) =~ "disabled" or 
+             render(next_btn) =~ "cursor-not-allowed" or
+             render(next_btn) =~ "opacity-50"
+    end
+
+    test "shows correct total pages calculation", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/dashboard")
+
+      # With 25 items and page size 10, should show "of 3"
+      assert html =~ "of 3"
+    end
+
+    test "maintains pagination state when filtering by agency", %{conn: conn, agency: agency} do
+      {:ok, view, _html} = live(conn, "/dashboard")
+
+      # Go to page 2
+      view
+      |> element(".hidden.sm\\:flex [data-testid='next-page-btn']")
+      |> render_click()
+
+      # Filter by agency
+      view
+      |> element("[data-testid='agency-filter']")
+      |> render_change(%{agency: agency.id})
+
+      # Should reset to page 1 when filtering
+      updated_html = render(view)
+      assert updated_html =~ "Page 1"
+    end
+
+    test "handles URL parameters for direct page navigation", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/dashboard?recent_activity_page=2")
+
+      # Should start on page 2
+      assert html =~ "Page 2"
+      assert html =~ "HSE-011" # Should show page 2 content
+    end
+
+    test "handles invalid page parameters gracefully", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/dashboard?recent_activity_page=999")
+
+      # Should default to last valid page (page 3)
+      assert html =~ "Page 3"
+    end
+
+    test "shows no pagination when items fit on one page", %{conn: conn} do
+      # Clear most cases, leaving only 5
+      all_cases = Enforcement.list_cases!()
+      cases_to_delete = Enum.drop(all_cases, 5)
+      
+      Enum.each(cases_to_delete, fn case ->
+        Enforcement.destroy_case!(case)
+      end)
+
+      {:ok, view, html} = live(conn, "/dashboard")
+
+      # Should not show pagination controls
+      refute has_element?(view, "[data-testid='recent-activity-pagination']")
+    end
+  end
+
   describe "DashboardLive UI responsiveness" do
     test "renders responsive layout elements", %{conn: conn} do
       {:ok, view, html} = live(conn, "/dashboard")

@@ -5,6 +5,8 @@ defmodule EhsEnforcementWeb.DashboardLive do
   alias EhsEnforcement.Sync.SyncManager
   alias Phoenix.PubSub
 
+  @default_recent_activity_page_size 10
+
   @impl true
   def mount(_params, _session, socket) do
     # Subscribe to real-time updates
@@ -13,18 +15,50 @@ defmodule EhsEnforcementWeb.DashboardLive do
     
     # Load initial data
     agencies = Enforcement.list_agencies!()
-    recent_cases = load_recent_cases()
-    stats = calculate_stats(agencies, recent_cases)
     
     {:ok,
      socket
      |> assign(:agencies, agencies)
-     |> assign(:recent_cases, recent_cases)
-     |> assign(:stats, stats)
+     |> assign(:recent_cases, [])
+     |> assign(:total_recent_cases, 0)
+     |> assign(:recent_activity_page, 1)
+     |> assign(:recent_activity_page_size, @default_recent_activity_page_size)
+     |> assign(:stats, %{})
      |> assign(:loading, false)
      |> assign(:sync_status, %{})
      |> assign(:filter_agency, nil)
      |> assign(:time_period, "week")}
+  end
+
+  @impl true
+  def handle_params(params, _url, socket) do
+    recent_activity_page = String.to_integer(params["recent_activity_page"] || "1")
+    
+    # Load data first to get total count
+    {recent_cases, total_recent_cases} = load_recent_cases_paginated(socket.assigns.filter_agency, recent_activity_page, socket.assigns.recent_activity_page_size)
+    
+    # Calculate stats
+    stats = calculate_stats(socket.assigns.agencies, recent_cases, socket.assigns.time_period)
+    
+    # Ensure page is within valid range (recalculate if needed)
+    max_page = calculate_max_page(total_recent_cases, socket.assigns.recent_activity_page_size)
+    valid_page = max(1, min(recent_activity_page, max_page))
+    
+    # If page was out of range, reload with valid page
+    final_data = if valid_page != recent_activity_page do
+      load_recent_cases_paginated(socket.assigns.filter_agency, valid_page, socket.assigns.recent_activity_page_size)
+    else
+      {recent_cases, total_recent_cases}
+    end
+    
+    {final_recent_cases, final_total_recent_cases} = final_data
+    
+    {:noreply,
+     socket
+     |> assign(:recent_activity_page, valid_page)
+     |> assign(:recent_cases, final_recent_cases)
+     |> assign(:total_recent_cases, final_total_recent_cases)
+     |> assign(:stats, stats)}
   end
 
   @impl true
@@ -45,23 +79,53 @@ defmodule EhsEnforcementWeb.DashboardLive do
   @impl true
   def handle_event("filter_by_agency", %{"agency" => agency_id}, socket) do
     filter_agency = if agency_id == "", do: nil, else: agency_id
-    recent_cases = load_recent_cases(filter_agency)
+    {recent_cases, total_recent_cases} = load_recent_cases_paginated(filter_agency, 1, socket.assigns.recent_activity_page_size)
     
     {:noreply,
      socket
      |> assign(:filter_agency, filter_agency)
-     |> assign(:recent_cases, recent_cases)}
+     |> assign(:recent_cases, recent_cases)
+     |> assign(:total_recent_cases, total_recent_cases)
+     |> assign(:recent_activity_page, 1)
+     |> push_patch(to: ~p"/dashboard")}
+  end
+
+  @impl true
+  def handle_event("recent_activity_next_page", _params, socket) do
+    current_page = socket.assigns.recent_activity_page
+    max_page = calculate_max_page(socket.assigns.total_recent_cases, socket.assigns.recent_activity_page_size)
+    
+    if current_page < max_page do
+      next_page = current_page + 1
+      {:noreply, push_patch(socket, to: ~p"/dashboard?recent_activity_page=#{next_page}")}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("recent_activity_prev_page", _params, socket) do
+    current_page = socket.assigns.recent_activity_page
+    
+    if current_page > 1 do
+      prev_page = current_page - 1
+      {:noreply, push_patch(socket, to: ~p"/dashboard?recent_activity_page=#{prev_page}")}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
   def handle_event("change_time_period", %{"period" => period}, socket) do
     agencies = socket.assigns.agencies
-    recent_cases = load_recent_cases(socket.assigns.filter_agency)
+    {recent_cases, total_recent_cases} = load_recent_cases_paginated(socket.assigns.filter_agency, socket.assigns.recent_activity_page, socket.assigns.recent_activity_page_size)
     stats = calculate_stats(agencies, recent_cases, period)
     
     {:noreply,
      socket
      |> assign(:time_period, period)
+     |> assign(:recent_cases, recent_cases)
+     |> assign(:total_recent_cases, total_recent_cases)
      |> assign(:stats, stats)}
   end
 
@@ -88,7 +152,7 @@ defmodule EhsEnforcementWeb.DashboardLive do
   def handle_info({:sync_complete, agency_code}, socket) do
     # Reload data after sync
     agencies = Enforcement.list_agencies!()
-    recent_cases = load_recent_cases(socket.assigns.filter_agency)
+    {recent_cases, total_recent_cases} = load_recent_cases_paginated(socket.assigns.filter_agency, socket.assigns.recent_activity_page, socket.assigns.recent_activity_page_size)
     stats = calculate_stats(agencies, recent_cases, socket.assigns.time_period)
     
     sync_status = Map.put(socket.assigns.sync_status, agency_code, %{status: "completed", progress: 100})
@@ -97,19 +161,28 @@ defmodule EhsEnforcementWeb.DashboardLive do
      socket
      |> assign(:agencies, agencies)
      |> assign(:recent_cases, recent_cases)
+     |> assign(:total_recent_cases, total_recent_cases)
      |> assign(:stats, stats)
      |> assign(:sync_status, sync_status)}
   end
 
   @impl true
+  def handle_info({:sync_error, agency_code, error_message}, socket) do
+    sync_status = Map.put(socket.assigns.sync_status, agency_code, %{status: "error", error: error_message})
+    
+    {:noreply, assign(socket, :sync_status, sync_status)}
+  end
+
+  @impl true
   def handle_info({:case_created, _case}, socket) do
     # Reload recent cases when a new case is created
-    recent_cases = load_recent_cases(socket.assigns.filter_agency)
+    {recent_cases, total_recent_cases} = load_recent_cases_paginated(socket.assigns.filter_agency, socket.assigns.recent_activity_page, socket.assigns.recent_activity_page_size)
     stats = calculate_stats(socket.assigns.agencies, recent_cases, socket.assigns.time_period)
     
     {:noreply,
      socket
      |> assign(:recent_cases, recent_cases)
+     |> assign(:total_recent_cases, total_recent_cases)
      |> assign(:stats, stats)}
   end
 
@@ -122,6 +195,42 @@ defmodule EhsEnforcementWeb.DashboardLive do
       limit: 10,
       load: [:offender, :agency]
     )
+  end
+
+  defp load_recent_cases_paginated(filter_agency \\ nil, page \\ 1, page_size \\ @default_recent_activity_page_size) do
+    filter = if filter_agency, do: [agency_id: filter_agency], else: []
+    offset = (page - 1) * page_size
+    
+    query_opts = [
+      filter: filter,
+      sort: [offence_action_date: :desc],
+      page: [limit: page_size, offset: offset, count: true],
+      load: [:offender, :agency]
+    ]
+
+    try do
+      result = Enforcement.list_cases!(query_opts)
+      
+      # Handle paginated results
+      case result do
+        %Ash.Page.Offset{results: results, count: count} -> 
+          {results, count || 0}
+        results when is_list(results) -> 
+          # Fallback: get total count separately
+          total_count = Enforcement.count_cases!(filter: filter)
+          {results, total_count}
+      end
+    rescue
+      error ->
+        require Logger
+        Logger.error("Failed to load paginated recent cases: #{inspect(error)}")
+        {[], 0}
+    end
+  end
+
+  defp calculate_max_page(total_items, page_size) when total_items <= 0, do: 1
+  defp calculate_max_page(total_items, page_size) do
+    ceil(total_items / page_size)
   end
 
   defp calculate_stats(agencies, recent_cases, period \\ "week") do

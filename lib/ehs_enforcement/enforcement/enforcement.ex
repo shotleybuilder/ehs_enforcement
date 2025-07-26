@@ -161,6 +161,20 @@ defmodule EhsEnforcement.Enforcement do
       sorts -> Ash.Query.sort(query, sorts)
     end
     
+    # Apply pagination if provided
+    query = case opts[:page] do
+      nil -> query
+      page_opts -> 
+        limit = page_opts[:limit]
+        offset = page_opts[:offset]
+        count = page_opts[:count]
+        
+        query
+        |> then(fn q -> if limit, do: Ash.Query.limit(q, limit), else: q end)
+        |> then(fn q -> if offset, do: Ash.Query.offset(q, offset), else: q end)
+        |> then(fn q -> if count, do: Ash.Query.page(q, count: true), else: q end)
+    end
+    
     Ash.read(query)
   end
 
