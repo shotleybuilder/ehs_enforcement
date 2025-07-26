@@ -25,6 +25,11 @@ defmodule EhsEnforcementWeb.Endpoint do
     gzip: false,
     only: EhsEnforcementWeb.static_paths()
 
+  # Tidewave MCP for AI assistance during development
+  if Code.ensure_loaded?(Tidewave) do
+    plug Tidewave
+  end
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do
