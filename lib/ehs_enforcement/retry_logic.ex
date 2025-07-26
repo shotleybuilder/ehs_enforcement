@@ -152,13 +152,7 @@ defmodule EhsEnforcement.RetryLogic do
           context: context
         )
       
-      :linear ->
-        with_linear_backoff(fun,
-          max_attempts: max_attempts,
-          delay_ms: policy.base_delay_ms,
-          operation: context[:operation],
-          context: context
-        )
+      # :linear backoff not currently supported in policies
       
       :fibonacci ->
         with_fibonacci_backoff(fun,
@@ -489,7 +483,7 @@ defmodule EhsEnforcement.RetryLogic do
 
   ## Private Functions
 
-  defp retry_with_delays(fun, delays, operation, context) do
+  defp retry_with_delays(fun, delays, operation, _context) do
     record_operation_start(operation)
     
     case attempt_with_delays(fun, delays, operation, 1) do
@@ -503,7 +497,7 @@ defmodule EhsEnforcement.RetryLogic do
     end
   end
 
-  defp attempt_with_delays(fun, [], _operation, _attempt), do: {:error, :max_attempts_exceeded}
+  defp attempt_with_delays(_fun, [], _operation, _attempt), do: {:error, :max_attempts_exceeded}
 
   defp attempt_with_delays(fun, [delay | remaining_delays], operation, attempt) do
     log_retry_attempt(operation, attempt)
@@ -623,7 +617,7 @@ defmodule EhsEnforcement.RetryLogic do
     end
   end
 
-  defp record_operation_start(operation) do
+  defp record_operation_start(_operation) do
     # Record operation start for metrics
     :ok
   end

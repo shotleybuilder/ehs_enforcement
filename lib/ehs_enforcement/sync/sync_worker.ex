@@ -15,7 +15,7 @@ defmodule EhsEnforcement.Sync.SyncWorker do
   end
   
   # Handle raw map args for testing
-  def perform(%{"agency" => agency, "type" => type} = args) when is_binary(agency) and is_binary(type) do
+  def perform(%{"agency" => agency, "type" => type} = _args) when is_binary(agency) and is_binary(type) do
     # Emit telemetry start event
     start_time = System.monotonic_time()
     metadata = %{agency: String.to_atom(agency), type: String.to_atom(type)}
@@ -89,7 +89,7 @@ defmodule EhsEnforcement.Sync.SyncWorker do
       :cases ->
         # Check if module exists before calling
         if function_exported?(EhsEnforcement.Agencies.Hse.Cases, :sync_to_postgres, 1) do
-          EhsEnforcement.Agencies.Hse.Cases.sync_to_postgres(:hse)
+          apply(EhsEnforcement.Agencies.Hse.Cases, :sync_to_postgres, [:hse])
         else
           # Fallback to SyncManager
           SyncManager.sync_agency(:hse, :cases)
@@ -98,7 +98,7 @@ defmodule EhsEnforcement.Sync.SyncWorker do
       :notices ->
         # Check if module exists before calling
         if function_exported?(EhsEnforcement.Agencies.Hse.Notices, :sync_to_postgres, 1) do
-          EhsEnforcement.Agencies.Hse.Notices.sync_to_postgres(:hse)
+          apply(EhsEnforcement.Agencies.Hse.Notices, :sync_to_postgres, [:hse])
         else
           # Fallback to SyncManager
           SyncManager.sync_agency(:hse, :notices)

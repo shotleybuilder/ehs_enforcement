@@ -274,15 +274,13 @@ defmodule EhsEnforcementWeb.CaseLive.Form do
     end
   end
 
-  defp format_currency_input(amount) when is_struct(amount, Decimal) do
-    Decimal.to_string(amount)
-  end
-
-  defp format_currency_input(_), do: ""
-
-  defp format_date_input(date) when is_struct(date, Date) do
-    Date.to_iso8601(date)
-  end
-
-  defp format_date_input(_), do: ""
+  # Unused functions commented out:
+  # defp format_currency_input(amount) when is_struct(amount, Decimal) do
+  #   Decimal.to_string(amount)
+  # end
+  # defp format_currency_input(_), do: ""
+  # defp format_date_input(date) when is_struct(date, Date) do
+  #   Date.to_iso8601(date)
+  # end
+  # defp format_date_input(_), do: ""
 end

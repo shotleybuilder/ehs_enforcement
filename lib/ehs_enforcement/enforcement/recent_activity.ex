@@ -4,12 +4,13 @@ defmodule EhsEnforcement.Enforcement.RecentActivity do
   Combines court cases and enforcement notices for Recent Activity table.
   """
 
-  import Ash.Query
+  # import Ash.Query  # Unused import removed
   require Ash.Query
 
-  alias EhsEnforcement.Enforcement
-  alias EhsEnforcement.Enforcement.Case
-  alias EhsEnforcement.Enforcement.Notice
+  # Unused aliases removed:
+  # alias EhsEnforcement.Enforcement
+  # alias EhsEnforcement.Enforcement.Case
+  # alias EhsEnforcement.Enforcement.Notice
 
   @doc """
   Fetches recent enforcement activity combining cases and notices.

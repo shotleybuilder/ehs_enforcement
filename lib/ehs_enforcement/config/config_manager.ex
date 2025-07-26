@@ -8,7 +8,8 @@ defmodule EhsEnforcement.Config.ConfigManager do
 
   use GenServer
 
-  alias EhsEnforcement.Config.{Settings, Validator, FeatureFlags, Environment}
+  alias EhsEnforcement.Config.{Settings, Validator, FeatureFlags}
+  # alias EhsEnforcement.Config.Environment  # Unused alias removed
 
   # Client API
 
@@ -141,7 +142,7 @@ defmodule EhsEnforcement.Config.ConfigManager do
         new_state = %{state | last_reload: DateTime.utc_now()}
         {:reply, :ok, new_state}
       
-      {:error, reason} ->
+      {:error, _reason} ->
         {:reply, {:error, :configuration_validation_failed}, state}
     end
   end

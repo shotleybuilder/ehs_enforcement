@@ -2,7 +2,7 @@ defmodule EhsEnforcementWeb.CaseLive.Index do
   use EhsEnforcementWeb, :live_view
 
   alias EhsEnforcement.Enforcement
-  alias EhsEnforcementWeb.Components.CaseFilter
+  # alias EhsEnforcementWeb.Components.CaseFilter  # Unused alias removed
 
   @default_page_size 20
   @max_page_size 100
@@ -309,7 +309,9 @@ defmodule EhsEnforcementWeb.CaseLive.Index do
 
   defp format_date(_), do: ""
 
-  defp truncate_text(text, max_length \\ 100) when is_binary(text) do
+  defp truncate_text(text, max_length)
+
+  defp truncate_text(text, max_length) when is_binary(text) do
     if String.length(text) > max_length do
       String.slice(text, 0, max_length) <> "..."
     else

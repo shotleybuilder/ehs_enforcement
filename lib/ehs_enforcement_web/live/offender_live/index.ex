@@ -2,7 +2,7 @@ defmodule EhsEnforcementWeb.OffenderLive.Index do
   use EhsEnforcementWeb, :live_view
 
   alias EhsEnforcement.Enforcement
-  alias Phoenix.LiveView.JS
+  # alias Phoenix.LiveView.JS  # Unused alias removed
 
   require Ash.Query
   import Ash.Expr
@@ -229,12 +229,12 @@ defmodule EhsEnforcementWeb.OffenderLive.Index do
   end
 
   defp maybe_add_industry_filter(filter, nil), do: filter
-  defp maybe_add_industry_filter(filter, industry_name) do
+  defp maybe_add_industry_filter(filter, _industry_name) do
     [expr(industry |> ilike("%#{industry_name}%")) | filter]
   end
 
   defp maybe_add_local_authority_filter(filter, nil), do: filter
-  defp maybe_add_local_authority_filter(filter, authority_name) do
+  defp maybe_add_local_authority_filter(filter, _authority_name) do
     [expr(local_authority |> ilike("%#{authority_name}%")) | filter]
   end
 
@@ -253,7 +253,7 @@ defmodule EhsEnforcementWeb.OffenderLive.Index do
 
   defp maybe_add_search_filter(filter, nil), do: filter
   defp maybe_add_search_filter(filter, ""), do: filter
-  defp maybe_add_search_filter(filter, search_query) do
+  defp maybe_add_search_filter(filter, _search_query) do
     search_filter = expr(
       name |> ilike("%#{search_query}%") or
       postcode |> ilike("%#{search_query}%") or 

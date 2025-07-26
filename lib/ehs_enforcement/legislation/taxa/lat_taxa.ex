@@ -445,7 +445,7 @@ defmodule EhsEnforcement.Legislation.Taxa.LATTaxa do
   def patch(results, opts) do
     opts = Options.patch(opts)
 
-    headers = [{:"Content-Type", "application/json"}]
+    _headers = [{:"Content-Type", "application/json"}]
 
     params = %{
       base: opts.base_id,

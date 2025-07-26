@@ -241,9 +241,6 @@ defmodule EhsEnforcement.Sync do
             {:cont, {new_imported, new_errors}}
           end
           
-        {:error, error} ->
-          Logger.error("❌ Batch #{batch_number} failed: #{inspect(error)}")
-          {:halt, {acc_imported, acc_errors + length(batch)}}
       end
     end)
     
@@ -286,9 +283,6 @@ defmodule EhsEnforcement.Sync do
             {:cont, {new_imported, new_errors}}
           end
           
-        {:error, error} ->
-          Logger.error("❌ Batch #{batch_number} failed: #{inspect(error)}")
-          {:halt, {acc_imported, acc_errors + length(batch)}}
       end
     end)
     
@@ -349,7 +343,7 @@ defmodule EhsEnforcement.Sync do
     {:ok, %{imported: imported_count, errors: error_count}}
   end
 
-  defp import_single_case(record, actor) do
+  defp import_single_case(record, _actor) do
     fields = record["fields"] || %{}
     
     attrs = %{
@@ -377,7 +371,7 @@ defmodule EhsEnforcement.Sync do
     EhsEnforcement.Enforcement.create_case(attrs)
   end
 
-  defp import_single_notice(record, actor) do
+  defp import_single_notice(record, _actor) do
     fields = record["fields"] || %{}
     
     attrs = %{

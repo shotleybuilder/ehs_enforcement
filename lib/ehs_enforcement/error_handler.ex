@@ -7,7 +7,7 @@ defmodule EhsEnforcement.ErrorHandler do
   """
 
   require Logger
-  alias EhsEnforcement.{Logger, Telemetry}
+  # alias EhsEnforcement.{Logger, Telemetry}  # Unused aliases removed
 
   # Custom error types
   defmodule DuplicateError do
@@ -438,7 +438,21 @@ defmodule EhsEnforcement.ErrorHandler do
     hourly_errors = 
       error_data
       |> Enum.group_by(fn {_id, data} -> 
-        data.timestamp |> DateTime.to_time() |> Time.to_seconds_after_midnight() |> div(3600)
+        case data do
+          %{timestamp: timestamp} when is_struct(timestamp, DateTime) ->
+            try do
+              case timestamp |> DateTime.to_time() |> Time.to_seconds_after_midnight() do
+                seconds when is_integer(seconds) -> 
+                  Integer.floor_div(seconds, 3600)
+                _ -> 
+                  0
+              end
+            rescue
+              _ -> 0
+            end
+          _ -> 
+            0  # Default to hour 0 for invalid data
+        end
       end)
     
     # Find peak hours (hours with more than average errors)
@@ -481,9 +495,9 @@ defmodule EhsEnforcement.ErrorHandler do
   @doc """
   Applies bulkhead pattern for resource protection.
   """
-  def apply_bulkhead_pattern(error, context) do
+  def apply_bulkhead_pattern(_error, context) do
     pool_size = context[:pool_size] || 10
-    active_connections = context[:active_connections] || 0
+    _active_connections = context[:active_connections] || 0
     
     # Reduce pool size during errors to protect resources
     new_pool_limit = max(1, div(pool_size, 2))
@@ -540,7 +554,7 @@ defmodule EhsEnforcement.ErrorHandler do
   defp assess_data_loss_risk(:business_error), do: :medium
   defp assess_data_loss_risk(_), do: :low
 
-  defp generate_mitigation_steps(error, context) do
+  defp generate_mitigation_steps(error, _context) do
     {error_type, _} = categorize_error(error)
     
     case error_type do
@@ -589,7 +603,7 @@ defmodule EhsEnforcement.ErrorHandler do
     """
   end
 
-  defp generate_action_buttons(error, context) do
+  defp generate_action_buttons(error, _context) do
     {error_type, _} = categorize_error(error)
     
     case error_type do

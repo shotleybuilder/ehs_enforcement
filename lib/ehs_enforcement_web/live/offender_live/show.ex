@@ -2,7 +2,7 @@ defmodule EhsEnforcementWeb.OffenderLive.Show do
   use EhsEnforcementWeb, :live_view
 
   alias EhsEnforcement.Enforcement
-  alias Phoenix.LiveView.JS
+  # alias Phoenix.LiveView.JS  # Unused alias removed
 
   require Ash.Query
   import Ash.Expr
@@ -144,9 +144,11 @@ defmodule EhsEnforcementWeb.OffenderLive.Show do
   defp load_offender_data(socket) do
     case get_offender_with_details(socket.assigns.offender_id) do
       {:ok, offender} ->
+        # Use Map.get to avoid type checker issue with struct field access
+        offender_name = Map.get(offender, :name, "Unknown")
         socket
         |> assign(:offender, offender)
-        |> assign(:page_title, offender.name)
+        |> assign(:page_title, offender_name)
         |> load_enforcement_timeline()
         |> load_related_offenders()
         |> calculate_agency_breakdown()

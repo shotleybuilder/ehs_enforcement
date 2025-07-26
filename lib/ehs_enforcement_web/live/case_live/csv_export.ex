@@ -138,11 +138,11 @@ defmodule EhsEnforcementWeb.CaseLive.CSVExport do
 
   defp format_currency_for_csv(_), do: "0.00"
 
-  defp count_associations(associations) when is_list(associations) do
-    length(associations)
-  end
-
-  defp count_associations(_), do: 0
+  # Unused function commented out:
+  # defp count_associations(associations) when is_list(associations) do
+  #   length(associations)
+  # end
+  # defp count_associations(_), do: 0
 
   # Copy filter and sort building logic from Index module
   defp build_ash_filter(filters) do

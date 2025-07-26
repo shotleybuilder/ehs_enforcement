@@ -7,7 +7,7 @@ defmodule EhsEnforcement.Logger do
   """
 
   require Logger
-  alias EhsEnforcement.Logger, as: EhsLogger
+  # alias EhsEnforcement.Logger, as: EhsLogger  # Unused alias removed
 
   # Log metrics storage
   @metrics_table :logger_metrics

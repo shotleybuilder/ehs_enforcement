@@ -9,7 +9,8 @@ defmodule EhsEnforcementWeb.Live.ErrorBoundary do
   use EhsEnforcementWeb, :live_view
   require Logger
 
-  alias EhsEnforcement.{Logger, ErrorHandler, Telemetry}
+  alias EhsEnforcement.Logger
+  # alias EhsEnforcement.{ErrorHandler, Telemetry}  # Unused aliases removed
 
   # Error state storage
   @error_history_table :error_boundary_history
@@ -27,7 +28,7 @@ defmodule EhsEnforcementWeb.Live.ErrorBoundary do
       """
     end
 
-    def handle_event("trigger_error", _params, socket) do
+    def handle_event("trigger_error", _params, _socket) do
       raise RuntimeError, "Simulated component crash"
     end
   end
@@ -55,12 +56,12 @@ defmodule EhsEnforcementWeb.Live.ErrorBoundary do
     end
 
     def handle_event("failing_event", _params, socket) do
-      Logger.error("handle_event error caught")
+      Logger.error("handle_event error caught", %RuntimeError{message: "failing_event"}, [], %{})
       {:noreply, put_flash(socket, :error, "Something went wrong")}
     end
 
     def handle_info({:error_message, _message}, socket) do
-      Logger.error("handle_info error caught")
+      Logger.error("handle_info error caught", %RuntimeError{message: "error_message"}, [], %{})
       {:noreply, socket}
     end
   end
@@ -69,15 +70,15 @@ defmodule EhsEnforcementWeb.Live.ErrorBoundary do
     use EhsEnforcementWeb, :live_view
 
     def mount(_params, _session, _socket) do
-      Logger.error("LiveView mount failed")
-      Logger.error("Redirecting to error page")
+      Logger.error("LiveView mount failed", %RuntimeError{message: "mount failed"}, [], %{})
+      Logger.error("Redirecting to error page", %RuntimeError{message: "redirect"}, [], %{})
       {:error, {:live_redirect, %{to: "/error"}}}
     end
   end
 
   ## LiveView Implementation
 
-  def mount(params, session, socket) do
+  def mount(_params, session, socket) do
     ensure_tables_exist()
     
     # Initialize error boundary state
@@ -164,12 +165,12 @@ defmodule EhsEnforcementWeb.Live.ErrorBoundary do
       report_error_to_service(error, %{component: "TestComponent"})
     end
     
-    Logger.error("ErrorBoundary caught error: #{inspect(error)}")
+    Logger.error("ErrorBoundary caught error", error, [], %{error_inspect: inspect(error)})
     
     {:noreply, assign(socket, :error_state, error_state)}
   end
 
-  def handle_event("trigger_error", _params, socket) do
+  def handle_event("trigger_error", _params, _socket) do
     # This will actually raise an error for testing
     raise RuntimeError, "Simulated LiveView error"
   end
@@ -381,7 +382,7 @@ defmodule EhsEnforcementWeb.Live.ErrorBoundary do
     """
   end
 
-  defp render_children(children) do
+  defp render_children(_children) do
     # Simplified children rendering for testing
     "Normal content"
   end
@@ -478,7 +479,7 @@ defmodule EhsEnforcementWeb.Live.ErrorBoundary do
     :ets.delete(@error_state_table, view_id)
   end
 
-  defp extract_error_type(%Req.TransportError{reason: reason}), do: "timeout"
+  defp extract_error_type(%Req.TransportError{reason: _reason}), do: "timeout"
   defp extract_error_type(%Ash.Error.Invalid{}), do: "validation"
   defp extract_error_type(%Postgrex.Error{}), do: "database"
   defp extract_error_type(%RuntimeError{message: message}) do
@@ -497,7 +498,7 @@ defmodule EhsEnforcementWeb.Live.ErrorBoundary do
     end
   end
 
-  defp should_report_error?(error, config) do
+  defp should_report_error?(_error, config) do
     if config[:throttle_errors] do
       # Simple throttling logic for testing
       :rand.uniform() > 0.7  # Throttle ~70% of identical errors

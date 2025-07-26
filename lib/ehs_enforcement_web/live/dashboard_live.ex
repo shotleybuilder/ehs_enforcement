@@ -2,7 +2,7 @@ defmodule EhsEnforcementWeb.DashboardLive do
   use EhsEnforcementWeb, :live_view
 
   alias EhsEnforcement.Enforcement
-  alias EhsEnforcement.Enforcement.RecentActivity
+  # alias EhsEnforcement.Enforcement.RecentActivity  # Unused alias removed
   alias EhsEnforcement.Sync.SyncManager
   alias Phoenix.PubSub
 
@@ -21,6 +21,7 @@ defmodule EhsEnforcementWeb.DashboardLive do
      socket
      |> assign(:agencies, agencies)
      |> assign(:recent_cases, [])
+     |> assign(:recent_activity, [])
      |> assign(:total_recent_cases, 0)
      |> assign(:recent_activity_page, 1)
      |> assign(:recent_activity_page_size, @default_recent_activity_page_size)
@@ -40,7 +41,7 @@ defmodule EhsEnforcementWeb.DashboardLive do
     {recent_cases, total_recent_cases} = load_recent_cases_paginated(socket.assigns.filter_agency, recent_activity_page, socket.assigns.recent_activity_page_size)
     
     # Convert cases to recent activity format for the table
-    recent_activity = format_cases_as_recent_activity(recent_cases)
+    _recent_activity = format_cases_as_recent_activity(recent_cases)
     
     # Calculate stats
     stats = calculate_stats(socket.assigns.agencies, recent_cases, socket.assigns.time_period)
@@ -74,7 +75,7 @@ defmodule EhsEnforcementWeb.DashboardLive do
     
     # Start sync process
     Task.start(fn ->
-      SyncManager.sync_agency(agency_code)
+      SyncManager.sync_agency(agency_code, :cases)
     end)
     
     # Update UI to show sync in progress
@@ -242,18 +243,18 @@ defmodule EhsEnforcementWeb.DashboardLive do
      |> assign(:stats, stats)}
   end
 
-  defp load_recent_cases(filter_agency \\ nil) do
-    filter = if filter_agency, do: [agency_id: filter_agency], else: []
-    
-    Enforcement.list_cases!(
-      filter: filter,
-      sort: [offence_action_date: :desc],
-      limit: 10,
-      load: [:offender, :agency]
-    )
-  end
+  # Unused function commented out:
+  # defp load_recent_cases(filter_agency \\ nil) do
+  #   filter = if filter_agency, do: [agency_id: filter_agency], else: []
+  #   Enforcement.list_cases!(
+  #     filter: filter,
+  #     sort: [offence_action_date: :desc],
+  #     limit: 10,
+  #     load: [:offender, :agency]
+  #   )
+  # end
 
-  defp load_recent_cases_paginated(filter_agency \\ nil, page \\ 1, page_size \\ @default_recent_activity_page_size) do
+  defp load_recent_cases_paginated(filter_agency, page, page_size) do
     filter = if filter_agency, do: [agency_id: filter_agency], else: []
     offset = (page - 1) * page_size
     
@@ -295,40 +296,57 @@ defmodule EhsEnforcementWeb.DashboardLive do
     end
   end
 
-  defp calculate_max_page(total_items, page_size) when total_items <= 0, do: 1
+  defp calculate_max_page(total_items, _page_size) when total_items <= 0, do: 1
   defp calculate_max_page(total_items, page_size) do
     ceil(total_items / page_size)
   end
 
-  defp calculate_stats(agencies, recent_cases, period \\ "week") do
-    total_cases = length(recent_cases)
+  defp calculate_stats(agencies, _recent_cases, _period) do
+    # Calculate date range (last 30 days)
+    thirty_days_ago = Date.add(Date.utc_today(), -30)
     
-    # Calculate total fines from recent cases (only cases have fines, not notices)
-    total_fines = recent_cases
-      |> Enum.filter(&match?(%EhsEnforcement.Enforcement.Case{}, &1))
-      |> Enum.map(& Map.get(&1, :offence_fine, Decimal.new(0)) || Decimal.new(0))
-      |> Enum.reduce(Decimal.new(0), &Decimal.add/2)
+    # Get all cases and notices (for comprehensive stats)
+    all_cases = EhsEnforcement.Enforcement.list_cases!()
+    all_notices = EhsEnforcement.Enforcement.list_notices!()
     
-    # Get agency-specific stats
+    # Filter for recent items (last 30 days)
+    recent_cases_list = Enum.filter(all_cases, fn case_record ->
+      case_record.offence_action_date && Date.compare(case_record.offence_action_date, thirty_days_ago) != :lt
+    end)
+    
+    recent_notices_list = Enum.filter(all_notices, fn notice_record ->
+      notice_record.offence_action_date && Date.compare(notice_record.offence_action_date, thirty_days_ago) != :lt
+    end)
+    
+    recent_cases_count = length(recent_cases_list)
+    recent_notices_count = length(recent_notices_list)
+    
+    # Calculate total fines from recent cases only
+    recent_total_fines = recent_cases_list
+    |> Enum.map(& &1.offence_fine || Decimal.new(0))
+    |> Enum.reduce(Decimal.new(0), &Decimal.add/2)
+    
+    # Get agency-specific stats for recent cases (last 30 days)
     agency_stats = Enum.map(agencies, fn agency ->
-      agency_cases = Enum.filter(recent_cases, & &1.agency_id == agency.id)
-      case_count = length(agency_cases)
+      agency_recent_cases = Enum.count(recent_cases_list, & &1.agency_id == agency.id)
       
       %{
         agency_id: agency.id,
         agency_code: agency.code,
         agency_name: agency.name,
-        case_count: case_count,
-        percentage: if(total_cases > 0, do: Float.round(case_count / total_cases * 100, 1), else: 0)
+        case_count: agency_recent_cases,
+        percentage: if(recent_cases_count > 0, do: Float.round(agency_recent_cases / recent_cases_count * 100, 1), else: 0)
       }
     end)
     
     %{
-      total_cases: total_cases,
-      total_fines: total_fines,
+      recent_cases: recent_cases_count,
+      recent_notices: recent_notices_count,
+      total_fines: recent_total_fines,
       active_agencies: Enum.count(agencies, & &1.enabled),
       agency_stats: agency_stats,
-      period: period
+      period: "30 days",
+      timeframe: "Last 30 Days"
     }
   end
 
@@ -337,11 +355,17 @@ defmodule EhsEnforcementWeb.DashboardLive do
       # Detect if this is a case or notice based on struct type
       is_case = match?(%EhsEnforcement.Enforcement.Case{}, record)
       
+      # Safely access offender name from loaded association
+      organization_name = case record.offender do
+        %{name: name} when is_binary(name) -> name
+        _ -> "Unknown Organization"
+      end
+      
       %{
         id: record.id,
         type: record.offence_action_type || if(is_case, do: "Court Case", else: "Enforcement Notice"),
         date: record.offence_action_date,
-        organization: record.offender.name,
+        organization: organization_name,
         description: record.offence_breaches || if(is_case, do: "Court case proceeding", else: "Enforcement notice issued"),
         fine_amount: if(is_case, do: Map.get(record, :offence_fine, nil), else: nil),
         agency_link: record.url,
