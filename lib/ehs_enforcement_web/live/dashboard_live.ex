@@ -144,28 +144,39 @@ defmodule EhsEnforcementWeb.DashboardLive do
   def handle_event("filter_recent_activity", %{"type" => type}, socket) do
     filter_type = String.to_existing_atom(type)
     
-    # Load all recent activity (cases and notices)
-    {all_recent_activity, _total_all} = load_recent_cases_paginated(socket.assigns.filter_agency, 1, socket.assigns.recent_activity_page_size * 10) # Load more to ensure we have enough after filtering
-    
-    # Apply filter based on type
-    filtered_activity = case filter_type do
-      :all -> all_recent_activity
-      :cases -> Enum.filter(all_recent_activity, &match?(%EhsEnforcement.Enforcement.Case{}, &1))
-      :notices -> Enum.filter(all_recent_activity, &match?(%EhsEnforcement.Enforcement.Notice{}, &1))
+    # Load recent activity based on filter type
+    {filtered_activity, total_filtered_count} = case filter_type do
+      :all -> 
+        load_recent_cases_paginated(socket.assigns.filter_agency, 1, socket.assigns.recent_activity_page_size)
+      :cases ->
+        # Load only cases
+        filter = if socket.assigns.filter_agency, do: [agency_id: socket.assigns.filter_agency], else: []
+        cases = EhsEnforcement.Enforcement.list_cases!(
+          filter: filter,
+          sort: [offence_action_date: :desc],
+          load: [:offender, :agency]
+        )
+        paginated_cases = Enum.take(cases, socket.assigns.recent_activity_page_size)
+        {paginated_cases, length(cases)}
+      :notices ->
+        # Load only notices
+        filter = if socket.assigns.filter_agency, do: [agency_id: socket.assigns.filter_agency], else: []
+        notices = EhsEnforcement.Enforcement.list_notices!(
+          filter: filter,
+          sort: [offence_action_date: :desc],
+          load: [:offender, :agency]
+        )
+        paginated_notices = Enum.take(notices, socket.assigns.recent_activity_page_size)
+        {paginated_notices, length(notices)}
     end
     
-    # Apply pagination to filtered results
-    page_size = socket.assigns.recent_activity_page_size
-    paginated_filtered_activity = Enum.take(filtered_activity, page_size)
-    total_filtered_count = length(filtered_activity)
-    
-    recent_activity = format_cases_as_recent_activity(paginated_filtered_activity)
+    recent_activity = format_cases_as_recent_activity(filtered_activity)
     
     {:noreply,
      socket
      |> assign(:recent_activity_filter, filter_type)
      |> assign(:recent_activity, recent_activity)
-     |> assign(:recent_cases, paginated_filtered_activity)
+     |> assign(:recent_cases, filtered_activity)
      |> assign(:total_recent_cases, total_filtered_count)
      |> assign(:recent_activity_page, 1)}
   end
