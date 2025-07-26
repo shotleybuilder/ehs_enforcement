@@ -62,15 +62,18 @@ defmodule EhsEnforcement.Sync.AirtableImporter do
   def partition_records(records) do
     Enum.reduce(records, {[], []}, fn record, {cases, notices} ->
       fields = record["fields"] || %{}
+      offence_action_type = fields["offence_action_type"] || ""
       
       cond do
-        fields["regulator_id"] ->
+        offence_action_type in ["Court Case", "Caution"] ->
           {[record | cases], notices}
           
-        fields["notice_id"] ->
+        # All other types are notices (Improvement Notice, Prohibition Notice, etc.)
+        offence_action_type != "" ->
           {cases, [record | notices]}
           
         true ->
+          # Skip records without offence_action_type
           {cases, notices}
       end
     end)
@@ -128,6 +131,7 @@ defmodule EhsEnforcement.Sync.AirtableImporter do
           main_activity: fields["offender_main_activity"]
         },
         offence_action_date: parse_date(fields["offence_action_date"]),
+        offence_action_type: fields["offence_action_type"],
         offence_fine: parse_decimal(fields["offence_fine"]),
         offence_breaches: fields["offence_breaches"]
       }
@@ -149,12 +153,34 @@ defmodule EhsEnforcement.Sync.AirtableImporter do
     Enum.map(notices, fn record ->
       fields = record["fields"] || %{}
       
-      # For now, just log that we would import this notice
-      # Since create_notice doesn't exist yet
-      Logger.info("Would import notice: #{fields["notice_id"]}")
+      attrs = %{
+        agency_code: String.to_atom(fields["agency_code"] || "hse"),
+        regulator_id: to_string(fields["regulator_id"]),
+        offender_attrs: %{
+          name: fields["offender_name"],
+          postcode: fields["offender_postcode"],
+          local_authority: fields["offender_local_authority"],
+          main_activity: fields["offender_main_activity"]
+        },
+        offence_action_type: fields["offence_action_type"],
+        offence_action_date: parse_date(fields["offence_action_date"]),
+        notice_date: parse_date(fields["notice_date"]),
+        operative_date: parse_date(fields["operative_date"]),
+        compliance_date: parse_date(fields["compliance_date"]),
+        notice_body: fields["notice_body"],
+        offence_breaches: fields["offence_breaches"]
+      }
       
-      %{notice_id: fields["notice_id"]}
+      case Enforcement.create_notice(attrs) do
+        {:ok, notice_record} ->
+          notice_record
+          
+        {:error, error} ->
+          Logger.error("Failed to import notice #{fields["regulator_id"]}: #{inspect(error)}")
+          nil
+      end
     end)
+    |> Enum.reject(&is_nil/1)
   end
   
   defp parse_date(nil), do: nil

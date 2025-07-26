@@ -2,6 +2,11 @@
 
 # Import 1000 records from Airtable to dev database
 # Usage: mix run scripts/import_1000_records.exs
+#
+# IMPORTANT: Uses corrected classification logic:
+# - Cases: offence_action_type = "Court Case" OR "Caution"  
+# - Notices: All other offence_action_type values
+# - Fixed issue where all records were incorrectly imported as cases
 
 alias EhsEnforcement.Sync.AirtableImporter
 alias EhsEnforcement.Integrations.Airtable.ReqClient

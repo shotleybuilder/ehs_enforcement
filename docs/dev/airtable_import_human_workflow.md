@@ -127,6 +127,20 @@ Repo.delete_all(from o in "offenders")
 - **Relationships**: Creates offenders automatically, links cases to offenders and agency
 - **Deduplication**: Offenders are matched by name and postcode
 
+## CRITICAL ISSUE: Record Classification Bug
+
+**❌ Current Problem**: The import logic incorrectly classifies ALL records as cases because:
+1. Both cases AND notices in Airtable have `regulator_id` fields
+2. Current logic: `regulator_id` → case, `notice_id` → notice
+3. Result: All 1000 records imported as cases, 0 notices
+
+**✅ Correct Classification Logic**:
+- **Cases**: Records where `offence_action_type` = "Court Case" OR "Caution" 
+- **Notices**: All other records (Improvement Notice, Prohibition Notice, etc.)
+- Both record types have `regulator_id` fields in production
+
+**Fix Required**: Update `AirtableImporter.partition_records/1` to use `offence_action_type` field instead of presence of `regulator_id`/`notice_id` fields.
+
 ## Performance Notes
 
 - Importing 1000 records takes approximately 2-3 minutes

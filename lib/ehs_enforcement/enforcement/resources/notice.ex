@@ -52,10 +52,60 @@ defmodule EhsEnforcement.Enforcement.Notice do
     defaults [:read, :update, :destroy]
     
     create :create do
+      primary? true
       accept [:airtable_id, :regulator_id, :regulator_ref_number,
               :notice_date, :operative_date, :compliance_date, :notice_body,
               :offence_action_type, :offence_action_date, :offence_breaches, :url,
-              :last_synced_at, :agency_id, :offender_id]
+              :last_synced_at]
+      
+      argument :agency_code, :atom
+      argument :offender_attrs, :map
+      argument :agency_id, :uuid
+      argument :offender_id, :uuid
+      
+      change fn changeset, context ->
+        cond do
+          # Direct IDs provided
+          Ash.Changeset.get_argument(changeset, :agency_id) && 
+          Ash.Changeset.get_argument(changeset, :offender_id) ->
+            agency_id = Ash.Changeset.get_argument(changeset, :agency_id)
+            offender_id = Ash.Changeset.get_argument(changeset, :offender_id)
+            
+            changeset
+            |> Ash.Changeset.force_change_attribute(:agency_id, agency_id)
+            |> Ash.Changeset.force_change_attribute(:offender_id, offender_id)
+          
+          # Code and attrs provided
+          Ash.Changeset.get_argument(changeset, :agency_code) &&
+          Ash.Changeset.get_argument(changeset, :offender_attrs) ->
+            agency_code = Ash.Changeset.get_argument(changeset, :agency_code)
+            offender_attrs = Ash.Changeset.get_argument(changeset, :offender_attrs)
+            
+            # Look up agency by code
+            case EhsEnforcement.Enforcement.get_agency_by_code(agency_code) do
+              {:ok, agency} when not is_nil(agency) ->
+                # Find or create offender
+                case EhsEnforcement.Sync.OffenderMatcher.find_or_create_offender(offender_attrs) do
+                  {:ok, offender} ->
+                    changeset
+                    |> Ash.Changeset.force_change_attribute(:agency_id, agency.id)
+                    |> Ash.Changeset.force_change_attribute(:offender_id, offender.id)
+                  
+                  {:error, _} -> 
+                    Ash.Changeset.add_error(changeset, "Failed to create offender")
+                end
+              
+              {:ok, nil} ->
+                Ash.Changeset.add_error(changeset, "Agency not found: #{agency_code}")
+              
+              {:error, _} ->
+                Ash.Changeset.add_error(changeset, "Error looking up agency: #{agency_code}")
+            end
+          
+          true ->
+            Ash.Changeset.add_error(changeset, "Must provide either agency_id/offender_id or agency_code/offender_attrs")
+        end
+      end
     end
   end
 
