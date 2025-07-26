@@ -59,6 +59,12 @@ defmodule EhsEnforcement.Enforcement do
     {:ok, offender}
   end
 
+  def update_offender(offender, attrs) do
+    offender
+    |> Ash.Changeset.for_update(:update, attrs)
+    |> Ash.update()
+  end
+
   def update_offender_statistics(offender, attrs) do
     offender
     |> Ash.Changeset.for_update(:update_statistics, attrs)
@@ -72,12 +78,15 @@ defmodule EhsEnforcement.Enforcement do
   end
 
   def get_offender_by_name_and_postcode(name, postcode) do
+    # Normalize the search name for matching
+    normalized_search_name = EhsEnforcement.Sync.OffenderMatcher.normalize_company_name(name)
+    
     query = if postcode do
       EhsEnforcement.Enforcement.Offender
-      |> Ash.Query.filter(name == ^name and postcode == ^postcode)
+      |> Ash.Query.filter(normalized_name == ^normalized_search_name and postcode == ^postcode)
     else
       EhsEnforcement.Enforcement.Offender
-      |> Ash.Query.filter(name == ^name and is_nil(postcode))
+      |> Ash.Query.filter(normalized_name == ^normalized_search_name and is_nil(postcode))
     end
     
     case query |> Ash.read_one() do

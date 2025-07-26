@@ -10,14 +10,14 @@ defmodule EhsEnforcement.Enforcement.AgencyTest do
         code: :hse,
         name: "Health and Safety Executive",
         base_url: "https://resources.hse.gov.uk",
-        active: true
+        enabled: true
       }
 
       assert {:ok, agency} = Enforcement.create_agency(attrs)
       assert agency.code == :hse
       assert agency.name == "Health and Safety Executive"
       assert agency.base_url == "https://resources.hse.gov.uk"
-      assert agency.active == true
+      assert agency.enabled == true
       assert agency.id != nil
     end
 
@@ -83,11 +83,11 @@ defmodule EhsEnforcement.Enforcement.AgencyTest do
       attrs = %{code: :hse, name: "Health and Safety Executive"}
       assert {:ok, agency} = Enforcement.create_agency(attrs)
 
-      update_attrs = %{name: "Updated HSE Name", active: false}
+      update_attrs = %{name: "Updated HSE Name", enabled: false}
       assert {:ok, updated_agency} = Enforcement.update_agency(agency, update_attrs)
       
       assert updated_agency.name == "Updated HSE Name"
-      assert updated_agency.active == false
+      assert updated_agency.enabled == false
     end
   end
 end

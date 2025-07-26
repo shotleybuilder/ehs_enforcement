@@ -100,8 +100,8 @@ defmodule EhsEnforcement.Sync.OffenderMatcher do
   defp get_postcode(candidate), do: Map.get(candidate, :postcode)
   
   defp normalize_attrs(attrs) when is_map(attrs) do
+    # Only normalize postcode - leave name unchanged since Offender resource handles normalization
     attrs
-    |> Map.update(:name, "", &normalize_company_name/1)
     |> Map.update(:postcode, nil, &normalize_postcode/1)
   end
   

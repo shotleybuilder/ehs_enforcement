@@ -16,7 +16,8 @@ defmodule EhsEnforcement.Enforcement.OffenderTest do
       }
 
       assert {:ok, offender} = Enforcement.create_offender(attrs)
-      assert offender.name == "acme construction limited"  # normalized
+      assert offender.name == "Acme Construction Ltd"  # original name preserved
+      assert offender.normalized_name == "acme construction limited"  # normalized version
       assert offender.local_authority == "Manchester"
       assert offender.postcode == "M1 1AA"
       assert offender.business_type == :limited_company
@@ -32,7 +33,8 @@ defmodule EhsEnforcement.Enforcement.OffenderTest do
       }
 
       assert {:ok, offender} = Enforcement.create_offender(attrs)
-      assert offender.name == "test company limited"
+      assert offender.name == "Test Company Ltd."  # original preserved
+      assert offender.normalized_name == "test company limited"
     end
 
     test "normalizes PLC names" do
@@ -42,7 +44,8 @@ defmodule EhsEnforcement.Enforcement.OffenderTest do
       }
 
       assert {:ok, offender} = Enforcement.create_offender(attrs)
-      assert offender.name == "big corp plc"
+      assert offender.name == "Big Corp P.L.C."  # original preserved
+      assert offender.normalized_name == "big corp plc"
     end
 
     test "validates required name field" do

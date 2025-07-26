@@ -58,13 +58,14 @@ defmodule EhsEnforcement.Enforcement.CaseTest do
       assert case_record.regulator_id == "HSE002"
       
       # Load with relationships
-      {:ok, case_with_relations} = Enforcement.get_case!(
+      case_with_relations = Enforcement.get_case!(
         case_record.id, 
         load: [:agency, :offender]
       )
       
       assert case_with_relations.agency.code == :hse
-      assert case_with_relations.offender.name == "new company limited"
+      assert case_with_relations.offender.name == "New Company Ltd"  # original preserved
+      assert case_with_relations.offender.normalized_name == "new company limited"
     end
 
     test "validates required relationships" do
@@ -138,7 +139,7 @@ defmodule EhsEnforcement.Enforcement.CaseTest do
 
       assert {:ok, case_record} = Enforcement.create_case(attrs)
       
-      {:ok, case_with_calc} = Enforcement.get_case!(
+      case_with_calc = Enforcement.get_case!(
         case_record.id, 
         load: [:total_penalty]
       )

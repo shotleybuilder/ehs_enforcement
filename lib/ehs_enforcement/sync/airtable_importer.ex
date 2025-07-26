@@ -120,7 +120,7 @@ defmodule EhsEnforcement.Sync.AirtableImporter do
       
       attrs = %{
         agency_code: String.to_atom(fields["agency_code"] || "hse"),
-        regulator_id: fields["regulator_id"],
+        regulator_id: to_string(fields["regulator_id"]),
         offender_attrs: %{
           name: fields["offender_name"],
           postcode: fields["offender_postcode"],

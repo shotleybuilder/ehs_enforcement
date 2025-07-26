@@ -17,6 +17,7 @@ defmodule EhsEnforcement.Enforcement.Offender do
     uuid_primary_key :id
     
     attribute :name, :string, allow_nil?: false
+    attribute :normalized_name, :string
     attribute :local_authority, :string
     attribute :postcode, :string
     attribute :main_activity, :string
@@ -42,7 +43,7 @@ defmodule EhsEnforcement.Enforcement.Offender do
   end
 
   identities do
-    identity :unique_name_postcode, [:name, :postcode]
+    identity :unique_name_postcode, [:normalized_name, :postcode]
   end
 
   actions do
@@ -57,15 +58,27 @@ defmodule EhsEnforcement.Enforcement.Offender do
         case Ash.Changeset.get_attribute(changeset, :name) do
           nil -> changeset
           name -> 
+            # Keep original name, but add normalized version for matching
             normalized_name = normalize_company_name(name)
-            Ash.Changeset.force_change_attribute(changeset, :name, normalized_name)
+            Ash.Changeset.force_change_attribute(changeset, :normalized_name, normalized_name)
         end
       end
     end
     
     update :update do
       primary? true
-      accept [:local_authority, :main_activity, :business_type, :industry]
+      require_atomic? false
+      accept [:name, :local_authority, :main_activity, :business_type, :industry]
+      
+      change fn changeset, _context ->
+        case Ash.Changeset.get_attribute(changeset, :name) do
+          nil -> changeset
+          name -> 
+            # Update normalized name when name changes
+            normalized_name = normalize_company_name(name)
+            Ash.Changeset.force_change_attribute(changeset, :normalized_name, normalized_name)
+        end
+      end
     end
     
     update :update_statistics do

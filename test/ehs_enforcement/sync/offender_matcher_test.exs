@@ -15,7 +15,8 @@ defmodule EhsEnforcement.Sync.OffenderMatcherTest do
 
       # This will fail because OffenderMatcher module doesn't exist yet
       assert {:ok, offender} = OffenderMatcher.find_or_create_offender(attrs)
-      assert offender.name == "new company limited"  # normalized
+      assert offender.name == "New Company Ltd"  # original preserved
+      assert offender.normalized_name == "new company limited"  # normalized version
       assert offender.postcode == "M1 1AA"
       assert offender.business_type == :limited_company
     end
