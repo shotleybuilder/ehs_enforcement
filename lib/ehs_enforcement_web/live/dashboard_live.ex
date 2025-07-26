@@ -2,6 +2,7 @@ defmodule EhsEnforcementWeb.DashboardLive do
   use EhsEnforcementWeb, :live_view
 
   alias EhsEnforcement.Enforcement
+  alias EhsEnforcement.Enforcement.RecentActivity
   alias EhsEnforcement.Sync.SyncManager
   alias Phoenix.PubSub
 
@@ -27,12 +28,19 @@ defmodule EhsEnforcementWeb.DashboardLive do
      |> assign(:loading, false)
      |> assign(:sync_status, %{})
      |> assign(:filter_agency, nil)
+     |> assign(:recent_activity_filter, :all)
      |> assign(:time_period, "week")}
   end
 
   @impl true
   def handle_params(params, _url, socket) do
     recent_activity_page = String.to_integer(params["recent_activity_page"] || "1")
+    
+    # Load recent activity with current filter
+    recent_activity = RecentActivity.list_recent_activity(
+      filter_type: socket.assigns[:recent_activity_filter] || :all,
+      limit: socket.assigns.recent_activity_page_size
+    )
     
     # Load data first to get total count
     {recent_cases, total_recent_cases} = load_recent_cases_paginated(socket.assigns.filter_agency, recent_activity_page, socket.assigns.recent_activity_page_size)
@@ -58,6 +66,7 @@ defmodule EhsEnforcementWeb.DashboardLive do
      |> assign(:recent_activity_page, valid_page)
      |> assign(:recent_cases, final_recent_cases)
      |> assign(:total_recent_cases, final_total_recent_cases)
+     |> assign(:recent_activity, recent_activity)
      |> assign(:stats, stats)}
   end
 
@@ -127,6 +136,21 @@ defmodule EhsEnforcementWeb.DashboardLive do
      |> assign(:recent_cases, recent_cases)
      |> assign(:total_recent_cases, total_recent_cases)
      |> assign(:stats, stats)}
+  end
+
+  @impl true
+  def handle_event("filter_recent_activity", %{"type" => type}, socket) do
+    filter_type = String.to_existing_atom(type)
+    
+    recent_activity = RecentActivity.list_recent_activity(
+      filter_type: filter_type,
+      limit: socket.assigns.recent_activity_page_size
+    )
+    
+    {:noreply,
+     socket
+     |> assign(:recent_activity_filter, filter_type)
+     |> assign(:recent_activity, recent_activity)}
   end
 
   @impl true

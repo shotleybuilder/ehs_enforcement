@@ -846,6 +846,139 @@ defmodule EhsEnforcementWeb.DashboardLiveTest do
     end
   end
 
+  describe "DashboardLive Recent Activity table requirements" do
+    setup do
+      {:ok, agency} = Enforcement.create_agency(%{
+        code: :hse,
+        name: "Health and Safety Executive",
+        enabled: true
+      })
+
+      {:ok, offender1} = Enforcement.create_offender(%{
+        name: "Test Company Ltd",
+        local_authority: "Test Council"
+      })
+
+      {:ok, offender2} = Enforcement.create_offender(%{
+        name: "Example Corp",
+        local_authority: "Another Council"
+      })
+
+      # Create test case (court case with fine)
+      {:ok, case1} = Enforcement.create_case(%{
+        regulator_id: "HSE-001",
+        agency_id: agency.id,
+        offender_id: offender1.id,
+        offence_action_date: ~D[2024-01-15],
+        offence_fine: Decimal.new("25000.00"),
+        offence_breaches: "Health and safety violations leading to court proceedings",
+        offence_action_type: "Court Case",
+        url: "https://www.hse.gov.uk/prosecutions/case-123",
+        last_synced_at: DateTime.utc_now()
+      })
+
+      # Create test notice (no fine)
+      {:ok, notice1} = Enforcement.create_notice(%{
+        regulator_id: "HSE-002",
+        agency_id: agency.id,
+        offender_id: offender2.id,
+        offence_action_date: ~D[2024-01-20],
+        offence_breaches: "Workplace safety improvements required",
+        offence_action_type: "Improvement Notice",
+        url: "https://www.hse.gov.uk/notices/notice-456",
+        last_synced_at: DateTime.utc_now()
+      })
+
+      %{agency: agency, case: case1, notice: notice1}
+    end
+
+    test "displays Recent Activity table column headings", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/dashboard")
+
+      # Should display all required column headings
+      assert html =~ "Type"
+      assert html =~ "Date"
+      assert html =~ "Organization"
+      assert html =~ "Description"
+      assert html =~ "Fine Amount"
+      assert html =~ "Agency Link"
+    end
+
+    test "displays case/notice type distinction using offence_action_type", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/dashboard")
+
+      # Should show Court Case type
+      assert html =~ "Court Case"
+      # Should show Improvement Notice type
+      assert html =~ "Improvement Notice"
+    end
+
+    test "displays filter buttons for case/notice types", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/dashboard")
+
+      # Should have filter buttons
+      assert has_element?(view, "button", "All Types")
+      assert has_element?(view, "button", "Cases")
+      assert has_element?(view, "button", "Notices")
+    end
+
+    test "filtering by cases shows only court cases", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/dashboard")
+
+      # Click the "Cases" filter
+      view |> element("button", "Cases") |> render_click()
+
+      html = render(view)
+      # Should only show items with offence_action_type "Court Case"
+      assert html =~ "Court Case"
+      refute html =~ "Improvement Notice"
+    end
+
+    test "filtering by notices shows only enforcement notices", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/dashboard")
+
+      # Click the "Notices" filter
+      view |> element("button", "Notices") |> render_click()
+
+      html = render(view)
+      # Should only show items with notice-type offence_action_type values
+      assert html =~ "Improvement Notice"
+      refute html =~ "Court Case"
+    end
+
+    test "filtering by all types shows both cases and notices", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/dashboard")
+
+      # First filter to cases, then back to all
+      view |> element("button", "Cases") |> render_click()
+      view |> element("button", "All Types") |> render_click()
+
+      html = render(view)
+      # Should show both court cases and notices again
+      assert html =~ "Court Case"
+      assert html =~ "Improvement Notice"
+    end
+
+    test "court cases show fine amounts, notices show N/A", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/dashboard")
+
+      # Court case should show fine amount
+      assert html =~ "£25,000.00"
+      # Notice should show N/A for fine amount
+      assert html =~ "N/A"
+    end
+
+    test "displays agency website links with proper format", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/dashboard")
+
+      # Should have links to HSE website
+      assert html =~ "https://www.hse.gov.uk/prosecutions/case-123"
+      assert html =~ "https://www.hse.gov.uk/notices/notice-456"
+      # Should have "View Details" link text
+      assert html =~ "View Details"
+    end
+  end
+
   describe "DashboardLive UI responsiveness" do
     test "renders responsive layout elements", %{conn: conn} do
       {:ok, view, html} = live(conn, "/dashboard")

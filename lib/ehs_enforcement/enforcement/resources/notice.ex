@@ -20,11 +20,14 @@ defmodule EhsEnforcement.Enforcement.Notice do
     attribute :airtable_id, :string
     attribute :regulator_id, :string
     attribute :regulator_ref_number, :string
-    attribute :notice_type, :string
     attribute :notice_date, :date
     attribute :operative_date, :date
     attribute :compliance_date, :date
     attribute :notice_body, :string
+    attribute :offence_action_type, :string
+    attribute :offence_action_date, :date
+    attribute :offence_breaches, :string
+    attribute :url, :string
     attribute :last_synced_at, :utc_datetime
     
     create_timestamp :inserted_at
@@ -49,8 +52,9 @@ defmodule EhsEnforcement.Enforcement.Notice do
     defaults [:read, :update, :destroy]
     
     create :create do
-      accept [:airtable_id, :regulator_id, :regulator_ref_number, :notice_type, 
-              :notice_date, :operative_date, :compliance_date, :notice_body, 
+      accept [:airtable_id, :regulator_id, :regulator_ref_number,
+              :notice_date, :operative_date, :compliance_date, :notice_body,
+              :offence_action_type, :offence_action_date, :offence_breaches, :url,
               :last_synced_at, :agency_id, :offender_id]
     end
   end

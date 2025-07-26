@@ -130,70 +130,113 @@
       </div>
     </div>
 
-    <!-- Recent Activity Timeline -->
+    <!-- Recent Activity Table -->
     <div class="bg-white shadow overflow-hidden sm:rounded-md mb-8">
       <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
         <div class="flex justify-between items-center">
           <div>
             <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Activity</h3>
-            <p class="mt-1 max-w-2xl text-sm text-gray-500">Latest enforcement cases and updates</p>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">Latest enforcement cases and notices</p>
           </div>
-          <div>
-            <select
-              phx-change="filter_by_agency"
-              name="agency"
-              data-testid="agency-filter"
-              class="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+          
+          <!-- Filter buttons -->
+          <div class="flex space-x-2">
+            <button
+              phx-click="filter_recent_activity"
+              phx-value-type="all"
+              class={[
+                "px-3 py-1 rounded text-sm font-medium",
+                if(@recent_activity_filter == :all, do: "bg-blue-100 text-blue-800", else: "bg-gray-100 text-gray-700 hover:bg-gray-200")
+              ]}
             >
-              <option value="">All Agencies</option>
-              <%= for agency <- @agencies do %>
-                <option value={agency.id} selected={@filter_agency == agency.id}>
-                  <%= agency.name %>
-                </option>
-              <% end %>
-            </select>
+              All Types
+            </button>
+            <button
+              phx-click="filter_recent_activity"
+              phx-value-type="cases"
+              class={[
+                "px-3 py-1 rounded text-sm font-medium",
+                if(@recent_activity_filter == :cases, do: "bg-blue-100 text-blue-800", else: "bg-gray-100 text-gray-700 hover:bg-gray-200")
+              ]}
+            >
+              Cases
+            </button>
+            <button
+              phx-click="filter_recent_activity"
+              phx-value-type="notices"
+              class={[
+                "px-3 py-1 rounded text-sm font-medium",
+                if(@recent_activity_filter == :notices, do: "bg-blue-100 text-blue-800", else: "bg-gray-100 text-gray-700 hover:bg-gray-200")
+              ]}
+            >
+              Notices
+            </button>
           </div>
         </div>
       </div>
-      <ul role="list" class="divide-y divide-gray-200" data-testid="recent-activities">
-        <%= if Enum.empty?(@recent_cases) do %>
-          <li class="px-4 py-4 text-center text-gray-500">
-            No recent cases found
-          </li>
-        <% else %>
-          <%= for case <- @recent_cases do %>
-            <li class="px-4 py-4" data-testid="activity-item">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      <%= case.agency.code |> to_string() |> String.upcase() %>
+
+      <!-- Recent Activity Table -->
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fine Amount</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agency Link</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200" data-testid="recent-activities">
+            <%= if Enum.empty?(@recent_activity || []) do %>
+              <tr>
+                <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                  No recent enforcement activity to display.
+                </td>
+              </tr>
+            <% else %>
+              <%= for activity <- (@recent_activity || []) do %>
+                <tr data-testid="activity-item">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <span class={[
+                      "inline-flex px-2 py-1 text-xs font-semibold rounded-full",
+                      if(activity.is_case, do: "bg-red-100 text-red-800", else: "bg-yellow-100 text-yellow-800")
+                    ]}>
+                      <%= activity.type %>
                     </span>
-                  </div>
-                  <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-900">
-                      <%= case.offender.name %>
-                    </div>
-                    <div class="text-sm text-gray-500">
-                      Case: <%= case.regulator_id || "N/A" %>
-                      <%= if case.offence_fine do %>
-                        • Fine: £<%= Decimal.to_string(case.offence_fine, :normal) %>
-                      <% end %>
-                    </div>
-                  </div>
-                </div>
-                <div class="text-sm text-gray-500">
-                  <%= if case.offence_action_date do %>
-                    <%= Date.to_string(case.offence_action_date) %>
-                  <% else %>
-                    No date
-                  <% end %>
-                </div>
-              </div>
-            </li>
-          <% end %>
-        <% end %>
-      </ul>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= if activity.date, do: Calendar.strftime(activity.date, "%d %b %Y"), else: "—" %>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-900">
+                    <%= activity.organization || "—" %>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                    <%= activity.description || "—" %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= RecentActivity.format_fine_amount(activity.fine_amount) %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    <%= if activity.agency_link do %>
+                      <a
+                        href={activity.agency_link}
+                        target="_blank"
+                        class="text-blue-600 hover:text-blue-800 underline"
+                      >
+                        View Details
+                      </a>
+                    <% else %>
+                      <span class="text-gray-400">—</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
       
       <!-- Pagination Controls -->
       <%= if @total_recent_cases > @recent_activity_page_size do %>

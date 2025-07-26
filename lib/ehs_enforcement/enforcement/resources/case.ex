@@ -29,6 +29,8 @@ defmodule EhsEnforcement.Enforcement.Case do
     attribute :regulator_function, :string
     attribute :regulator_url, :string
     attribute :related_cases, :string
+    attribute :offence_action_type, :string
+    attribute :url, :string
     attribute :last_synced_at, :utc_datetime
     
     create_timestamp :inserted_at
@@ -59,7 +61,7 @@ defmodule EhsEnforcement.Enforcement.Case do
       accept [:airtable_id, :regulator_id, :offence_result, :offence_fine, :offence_costs,
               :offence_action_date, :offence_hearing_date, :offence_breaches, 
               :offence_breaches_clean, :regulator_function, :regulator_url, :related_cases,
-              :last_synced_at]
+              :offence_action_type, :url, :last_synced_at]
       
       argument :agency_code, :atom
       argument :offender_attrs, :map
