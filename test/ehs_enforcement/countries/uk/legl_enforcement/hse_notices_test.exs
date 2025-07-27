@@ -3,6 +3,13 @@ defmodule EhsEnforcement.Agencies.Hse.NoticesTest do
   use ExUnit.Case, async: true
   alias EhsEnforcement.Agencies.Hse.{Notices, Breaches}
 
+  setup do
+    # Ensure modules are loaded before testing
+    Code.ensure_loaded(Notices)
+    Code.ensure_loaded(Breaches)
+    :ok
+  end
+
   setup_all do
     {:ok,
      notices:

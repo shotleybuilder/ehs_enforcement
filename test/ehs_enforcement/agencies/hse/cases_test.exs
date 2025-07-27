@@ -3,6 +3,12 @@ defmodule EhsEnforcement.Agencies.Hse.CasesTest do
   use ExUnit.Case, async: true
   alias EhsEnforcement.Agencies.Hse.Cases
 
+  setup do
+    # Ensure the module is loaded before testing
+    Code.ensure_loaded(Cases)
+    :ok
+  end
+
   test "api_get_hse_cases/1" do
     # Test that the api function exists and accepts options
     # Function has default arguments so can be called with arity 0 or 1
