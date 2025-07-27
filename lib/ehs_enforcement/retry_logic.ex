@@ -44,7 +44,7 @@ defmodule EhsEnforcement.RetryLogic do
     
     1..max_attempts
     |> Enum.map(fn attempt ->
-      delay = min(base_delay_ms * :math.pow(2, attempt - 1), max_delay_ms)
+      delay = min(base_delay_ms * :math.pow(2, attempt - 1), max_delay_ms) |> round()
       
       if jitter do
         jitter_range = div(delay, 2)
@@ -53,7 +53,6 @@ defmodule EhsEnforcement.RetryLogic do
         delay
       end
     end)
-    |> Enum.map(&round/1)
   end
 
   ## Linear Backoff Retry
@@ -518,8 +517,8 @@ defmodule EhsEnforcement.RetryLogic do
       {:ok, result} ->
         {:ok, result}
       
-      {:error, _reason} = error when attempt == max_attempts ->
-        error
+      {:error, _reason} = _error when attempt == max_attempts ->
+        {:error, :max_attempts_exceeded}
       
       {:error, _reason} = error ->
         if retry_when.(error) do
@@ -637,7 +636,7 @@ defmodule EhsEnforcement.RetryLogic do
   end
 
   defp log_retry_attempt(operation, attempt) do
-    Logger.debug("Retry attempt #{attempt} for operation: #{operation}",
+    Logger.info("Retry attempt #{attempt} for operation: #{operation}",
       operation: operation,
       attempt: attempt,
       retry_event: true

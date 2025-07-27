@@ -6,7 +6,7 @@ defmodule EhsEnforcement.RetryLogicTest do
 
   describe "exponential backoff retry" do
     test "retries with exponential backoff for retriable errors" do
-      attempt_count = Agent.start_link(fn -> 0 end)
+      {:ok, attempt_count} = Agent.start_link(fn -> 0 end)
       
       result = RetryLogic.with_exponential_backoff(
         fn ->
@@ -31,7 +31,7 @@ defmodule EhsEnforcement.RetryLogicTest do
     end
 
     test "fails after max attempts with exponential backoff" do
-      attempt_count = Agent.start_link(fn -> 0 end)
+      {:ok, attempt_count} = Agent.start_link(fn -> 0 end)
       
       result = RetryLogic.with_exponential_backoff(
         fn ->
@@ -77,7 +77,12 @@ defmodule EhsEnforcement.RetryLogicTest do
       )
       
       assert delays != delays2  # Jitter should make them different
-      assert Enum.all?(delays, fn delay -> delay >= 50 and delay <= 150 end)  # Within jitter range for first delay
+      # First delay should be base_delay ± jitter (100 ± 50)
+      assert Enum.at(delays, 0) >= 50 and Enum.at(delays, 0) <= 150
+      # Second delay should be around 200 ± jitter (roughly 100-300)
+      assert Enum.at(delays, 1) >= 100 and Enum.at(delays, 1) <= 300
+      # Third delay should be around 400 ± jitter (roughly 200-600)
+      assert Enum.at(delays, 2) >= 200 and Enum.at(delays, 2) <= 600
     end
 
     test "respects max delay limit in exponential backoff" do
@@ -94,7 +99,7 @@ defmodule EhsEnforcement.RetryLogicTest do
 
   describe "linear backoff retry" do
     test "retries with linear backoff" do
-      attempt_count = Agent.start_link(fn -> 0 end)
+      {:ok, attempt_count} = Agent.start_link(fn -> 0 end)
       
       result = RetryLogic.with_linear_backoff(
         fn ->
@@ -129,7 +134,7 @@ defmodule EhsEnforcement.RetryLogicTest do
 
   describe "fibonacci backoff retry" do
     test "retries with fibonacci backoff sequence" do
-      attempt_count = Agent.start_link(fn -> 0 end)
+      {:ok, attempt_count} = Agent.start_link(fn -> 0 end)
       
       result = RetryLogic.with_fibonacci_backoff(
         fn ->
@@ -178,7 +183,7 @@ defmodule EhsEnforcement.RetryLogicTest do
 
   describe "conditional retry logic" do
     test "retries only on specific error types" do
-      attempt_count = Agent.start_link(fn -> 0 end)
+      {:ok, attempt_count} = Agent.start_link(fn -> 0 end)
       
       result = RetryLogic.with_conditional_retry(
         fn ->
@@ -201,7 +206,7 @@ defmodule EhsEnforcement.RetryLogicTest do
     end
 
     test "does not retry on non-retriable errors" do
-      attempt_count = Agent.start_link(fn -> 0 end)
+      {:ok, attempt_count} = Agent.start_link(fn -> 0 end)
       
       result = RetryLogic.with_conditional_retry(
         fn ->
@@ -223,7 +228,7 @@ defmodule EhsEnforcement.RetryLogicTest do
     end
 
     test "retries with custom logic based on error and context" do
-      attempt_count = Agent.start_link(fn -> 0 end)
+      {:ok, attempt_count} = Agent.start_link(fn -> 0 end)
       
       result = RetryLogic.with_context_aware_retry(
         fn ->
@@ -383,7 +388,7 @@ defmodule EhsEnforcement.RetryLogicTest do
 
     test "handles successful async retry" do
       parent = self()
-      attempt_count = Agent.start_link(fn -> 0 end)
+      {:ok, attempt_count} = Agent.start_link(fn -> 0 end)
       
       task = RetryLogic.async_retry(
         fn ->
@@ -416,7 +421,7 @@ defmodule EhsEnforcement.RetryLogicTest do
       rate_limiter = :test_rate_limiter
       RetryLogic.init_rate_limiter(rate_limiter, max_requests: 2, window_ms: 1000)
       
-      attempt_count = Agent.start_link(fn -> 0 end)
+      {:ok, attempt_count} = Agent.start_link(fn -> 0 end)
       
       result = RetryLogic.with_rate_limited_retry(
         fn ->
