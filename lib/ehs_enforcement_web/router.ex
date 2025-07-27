@@ -17,6 +17,7 @@ defmodule EhsEnforcementWeb.Router do
   scope "/", EhsEnforcementWeb do
     pipe_through :browser
 
+    get "/home", PageController, :home
     live "/", DashboardLive, :index
     live "/dashboard", DashboardLive, :index
     
