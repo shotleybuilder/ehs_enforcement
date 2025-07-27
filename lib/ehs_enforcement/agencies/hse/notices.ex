@@ -53,7 +53,7 @@ defmodule EhsEnforcement.Agencies.Hse.Notices do
   @base "appq5OQW9bTHC1zO5"
   @table "tbl6NZm9bLU2ijivf"
 
-  def api_get_hse_notices(opts) do
+  def api_get_hse_notices(opts \\ []) do
     opts = Enum.into(opts, @default_opts)
 
     pages = Common.pages_picker()
