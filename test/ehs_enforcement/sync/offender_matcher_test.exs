@@ -38,7 +38,8 @@ defmodule EhsEnforcement.Sync.OffenderMatcherTest do
 
       assert {:ok, found_offender} = OffenderMatcher.find_or_create_offender(search_attrs)
       assert found_offender.id == existing_offender.id
-      assert found_offender.name == "existing company limited"
+      assert found_offender.name == "Existing Company Ltd"  # Original name preserved
+      assert found_offender.normalized_name == "existing company limited"  # Normalized for matching
     end
 
     test "creates new offender when postcode differs" do
@@ -59,7 +60,7 @@ defmodule EhsEnforcement.Sync.OffenderMatcherTest do
 
       # Should have 2 offenders with same name but different postcodes
       {:ok, all_offenders} = Enforcement.list_offenders()
-      same_name_offenders = Enum.filter(all_offenders, &(&1.name == "same name limited"))
+      same_name_offenders = Enum.filter(all_offenders, &(&1.normalized_name == "same name limited"))
       assert length(same_name_offenders) == 2
     end
 
@@ -94,7 +95,8 @@ defmodule EhsEnforcement.Sync.OffenderMatcherTest do
       }
 
       assert {:ok, new_offender} = OffenderMatcher.find_or_create_offender(search_attrs)
-      assert new_offender.name == "totally unrelated business limited"
+      assert new_offender.name == "Totally Unrelated Business Ltd"  # Original preserved
+      assert new_offender.normalized_name == "totally unrelated business limited"  # Normalized version
       assert new_offender.postcode == "M6 6FF"
 
       # Should have 2 different offenders
@@ -125,10 +127,10 @@ defmodule EhsEnforcement.Sync.OffenderMatcherTest do
     end
 
     test "normalizes company name variations correctly" do
-      # This will fail because OffenderMatcher module doesn't exist yet
       attrs = %{name: "Company Ltd.", postcode: "TEST"}
       {:ok, offender} = OffenderMatcher.find_or_create_offender(attrs)
-      assert offender.name == "company limited"
+      assert offender.name == "Company Ltd."  # Original preserved
+      assert offender.normalized_name == "company limited"  # Normalized version
     end
 
     test "handles missing postcode gracefully" do
@@ -137,9 +139,9 @@ defmodule EhsEnforcement.Sync.OffenderMatcherTest do
         # postcode deliberately omitted
       }
 
-      # This will fail because OffenderMatcher module doesn't exist yet
       assert {:ok, offender} = OffenderMatcher.find_or_create_offender(attrs)
-      assert offender.name == "no postcode company limited"
+      assert offender.name == "No Postcode Company Ltd"  # Original preserved
+      assert offender.normalized_name == "no postcode company limited"  # Normalized version
       assert offender.postcode == nil
     end
 
@@ -180,7 +182,7 @@ defmodule EhsEnforcement.Sync.OffenderMatcherTest do
 
       # This should find the existing one instead of failing on constraint
       assert {:ok, found_offender} = OffenderMatcher.find_or_create_offender(attrs)
-      assert found_offender.name == "race condition limited"
+      assert found_offender.name == "Race Condition Ltd"  # Original name preserved
     end
 
     test "preserves additional attributes when creating new offender" do

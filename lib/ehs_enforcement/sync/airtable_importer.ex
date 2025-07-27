@@ -22,14 +22,13 @@ defmodule EhsEnforcement.Sync.AirtableImporter do
     Logger.info("Starting Airtable data import...")
     
     try do
-      stream_airtable_records()
-      |> Stream.chunk_every(@batch_size)
-      |> Stream.each(&import_batch/1)
-      |> Stream.run()
-      
-      :ok
+      import_pages_with_error_handling(nil)
     rescue
       error ->
+        Logger.error("Import failed: #{inspect(error)}")
+        {:error, error}
+    catch
+      {:airtable_error, error} ->
         Logger.error("Import failed: #{inspect(error)}")
         {:error, error}
     end
@@ -89,6 +88,38 @@ defmodule EhsEnforcement.Sync.AirtableImporter do
   
   # Private functions
   
+  defp import_pages_with_error_handling(offset) do
+    path = "/#{@airtable_base_id}/#{@airtable_table_id}"
+    
+    params = case offset do
+      nil -> %{}
+      offset -> %{offset: offset}
+    end
+    
+    case client().get(path, params) do
+      {:ok, %{"records" => records, "offset" => next_offset}} ->
+        # Process current batch
+        records
+        |> Enum.chunk_every(@batch_size)
+        |> Enum.each(&import_batch/1)
+        
+        # Continue with next page
+        import_pages_with_error_handling(next_offset)
+        
+      {:ok, %{"records" => records}} ->
+        # Last page - process and finish
+        records
+        |> Enum.chunk_every(@batch_size)
+        |> Enum.each(&import_batch/1)
+        
+        :ok
+        
+      {:error, error} ->
+        Logger.error("Failed to fetch Airtable page: #{inspect(error)}")
+        {:error, error}
+    end
+  end
+  
   defp fetch_next_page(:done), do: nil
   
   defp fetch_next_page(offset) do
@@ -109,10 +140,10 @@ defmodule EhsEnforcement.Sync.AirtableImporter do
         
       {:error, error} ->
         Logger.error("Failed to fetch Airtable page: #{inspect(error)}")
-        nil
+        throw {:airtable_error, error}
         
       _ ->
-        nil
+        throw {:airtable_error, :unexpected_response}
     end
   end
   

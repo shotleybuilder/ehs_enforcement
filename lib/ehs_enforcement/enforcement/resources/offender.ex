@@ -109,6 +109,7 @@ defmodule EhsEnforcement.Enforcement.Offender do
       
       filter expr(
         ilike(name, "%" <> ^arg(:query) <> "%") or
+        ilike(normalized_name, "%" <> ^arg(:query) <> "%") or
         ilike(local_authority, "%" <> ^arg(:query) <> "%") or
         ilike(postcode, "%" <> ^arg(:query) <> "%")
       )
@@ -128,9 +129,15 @@ defmodule EhsEnforcement.Enforcement.Offender do
 
   defp normalize_company_name(name) when is_binary(name) do
     name
+    |> String.trim()
     |> String.downcase()
+    # Remove common punctuation that could interfere with matching
+    |> String.replace(~r/[\.,:;!@#$%^&*()]+/, "")
+    # Normalize company suffixes
     |> String.replace(~r/\s+(limited|ltd\.?)$/i, " limited")
     |> String.replace(~r/\s+(plc|p\.l\.c\.?)$/i, " plc")
+    # Replace multiple spaces with single space
+    |> String.replace(~r/\s+/, " ")
     |> String.trim()
   end
 
