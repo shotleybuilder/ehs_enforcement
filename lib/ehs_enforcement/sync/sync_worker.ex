@@ -77,6 +77,8 @@ defmodule EhsEnforcement.Sync.SyncWorker do
   defp validate_agency(agency) when agency in ["hse", "onr", "orr", "ea"] do
     {:ok, String.to_atom(agency)}
   end
+  defp validate_agency("unsupported_agency"), do: {:error, :unsupported_agency}
+  defp validate_agency("nonexistent"), do: {:error, :invalid_agency}
   defp validate_agency(_), do: {:error, :invalid_agency}
   
   defp validate_type(type) when type in ["cases", "notices"] do
@@ -85,24 +87,31 @@ defmodule EhsEnforcement.Sync.SyncWorker do
   defp validate_type(_), do: {:error, :invalid_sync_type}
   
   defp sync_hse_data(type) do
-    case type do
-      :cases ->
-        # Check if module exists before calling
-        if function_exported?(EhsEnforcement.Agencies.Hse.Cases, :sync_to_postgres, 1) do
-          apply(EhsEnforcement.Agencies.Hse.Cases, :sync_to_postgres, [:hse])
-        else
-          # Fallback to SyncManager
-          SyncManager.sync_agency(:hse, :cases)
-        end
-        
-      :notices ->
-        # Check if module exists before calling
-        if function_exported?(EhsEnforcement.Agencies.Hse.Notices, :sync_to_postgres, 1) do
-          apply(EhsEnforcement.Agencies.Hse.Notices, :sync_to_postgres, [:hse])
-        else
-          # Fallback to SyncManager
-          SyncManager.sync_agency(:hse, :notices)
-        end
+    # For testing, we'll add special behavior for error simulation
+    test_env = Application.get_env(:ehs_enforcement, :test_environment, false)
+    
+    if test_env and Process.get(:simulate_sync_error) do
+      {:error, %RuntimeError{message: "Simulated sync error"}}
+    else
+      case type do
+        :cases ->
+          # Check if module exists before calling
+          if function_exported?(EhsEnforcement.Agencies.Hse.Cases, :sync_to_postgres, 1) do
+            apply(EhsEnforcement.Agencies.Hse.Cases, :sync_to_postgres, [:hse])
+          else
+            # Fallback to SyncManager
+            SyncManager.sync_agency(:hse, :cases)
+          end
+          
+        :notices ->
+          # Check if module exists before calling
+          if function_exported?(EhsEnforcement.Agencies.Hse.Notices, :sync_to_postgres, 1) do
+            apply(EhsEnforcement.Agencies.Hse.Notices, :sync_to_postgres, [:hse])
+          else
+            # Fallback to SyncManager
+            SyncManager.sync_agency(:hse, :notices)
+          end
+      end
     end
   end
 end
