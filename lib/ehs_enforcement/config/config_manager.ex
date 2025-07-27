@@ -122,7 +122,7 @@ defmodule EhsEnforcement.Config.ConfigManager do
   def handle_call({:set_config, section, key, value}, _from, state) do
     case validate_config_change(section, key, value) do
       :ok ->
-        new_config = put_in(state.runtime_config, [section, key], value)
+        new_config = put_config_value(state.runtime_config, section, key, value)
         new_state = %{state | runtime_config: new_config}
         
         # Notify watchers
@@ -188,6 +188,35 @@ defmodule EhsEnforcement.Config.ConfigManager do
   end
 
   # Private functions
+
+  defp put_config_value(config, section, key, value) when is_list(section) do
+    # Handle nested path like [:agencies, :hse]
+    path = section ++ [key]
+    deep_put_in(config, path, value)
+  end
+
+  defp put_config_value(config, section, key, value) do
+    # Handle single section
+    deep_put_in(config, [section, key], value)
+  end
+
+  defp deep_put_in(config, [head], value) do
+    Map.put(config, head, value)
+  end
+
+  defp deep_put_in(config, [head | tail], value) do
+    current = Map.get(config, head, %{})
+    Map.put(config, head, deep_put_in(current, tail, value))
+  end
+
+  defp get_config_value(section, key, runtime_config, default) when is_list(section) do
+    # Handle nested path like [:agencies, :hse]
+    path = section ++ [key]
+    case get_in(runtime_config, path) do
+      nil -> get_environment_config_value(section, key, default)
+      value -> value
+    end
+  end
 
   defp get_config_value(section, key, runtime_config, default) do
     # Check runtime overrides first

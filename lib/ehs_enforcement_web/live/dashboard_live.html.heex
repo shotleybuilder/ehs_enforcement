@@ -34,7 +34,7 @@
     </div>
 
     <!-- Statistics Overview -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5 mb-8">
       <div class="bg-white overflow-hidden shadow rounded-lg">
         <div class="p-5">
           <div class="flex items-center">
@@ -67,8 +67,30 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Total Cases</dt>
-                <dd class="text-lg font-medium text-gray-900"><%= @stats.total_cases %> Cases</dd>
+                <dt class="text-sm font-medium text-gray-500 truncate">Recent Cases</dt>
+                <dd class="text-lg font-medium text-gray-900"><%= @stats.recent_cases %> Cases</dd>
+                <dd class="text-xs text-gray-400"><%= @stats.timeframe %></dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Recent Notices</dt>
+                <dd class="text-lg font-medium text-gray-900"><%= @stats.recent_notices %> Notices</dd>
+                <dd class="text-xs text-gray-400"><%= @stats.timeframe %></dd>
               </dl>
             </div>
           </div>
@@ -87,8 +109,9 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Total Fines</dt>
+                <dt class="text-sm font-medium text-gray-500 truncate">Recent Fines</dt>
                 <dd class="text-lg font-medium text-gray-900">£<%= Decimal.to_string(@stats.total_fines, :normal) %></dd>
+                <dd class="text-xs text-gray-400"><%= @stats.timeframe %></dd>
               </dl>
             </div>
           </div>

@@ -1,5 +1,8 @@
 import Config
 
+# Set the environment
+config :ehs_enforcement, :environment, :dev
+
 # Configure your database
 config :ehs_enforcement, EhsEnforcement.Repo,
   username: "postgres",

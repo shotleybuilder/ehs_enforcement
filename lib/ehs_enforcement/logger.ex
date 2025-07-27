@@ -39,8 +39,9 @@ defmodule EhsEnforcement.Logger do
   def info(message, metadata \\ %{}) do
     sanitized_metadata = sanitize_metadata(metadata)
     enriched_metadata = enrich_metadata(sanitized_metadata, :info)
+    formatted_message = format_message_with_metadata(message, enriched_metadata)
     
-    Logger.info(message, enriched_metadata)
+    Logger.info(formatted_message)
     record_log_metric(:info)
     :ok
   end
@@ -56,8 +57,9 @@ defmodule EhsEnforcement.Logger do
       stacktrace: format_stacktrace(stacktrace)
     })
     enriched_metadata = enrich_metadata(error_metadata, :error)
+    formatted_message = format_message_with_metadata(message, enriched_metadata)
     
-    Logger.error(message, enriched_metadata)
+    Logger.error(formatted_message)
     record_log_metric(:error)
     record_error_metric(error)
     :ok
@@ -69,8 +71,9 @@ defmodule EhsEnforcement.Logger do
   def warn(message, metadata \\ %{}) do
     sanitized_metadata = sanitize_metadata(metadata)
     enriched_metadata = enrich_metadata(sanitized_metadata, :warn)
+    formatted_message = format_message_with_metadata(message, enriched_metadata)
     
-    Logger.warning(message, enriched_metadata)
+    Logger.warning(formatted_message)
     record_log_metric(:warn)
     :ok
   end
@@ -81,8 +84,9 @@ defmodule EhsEnforcement.Logger do
   def debug(message, metadata \\ %{}) do
     sanitized_metadata = sanitize_metadata(metadata)
     enriched_metadata = enrich_metadata(sanitized_metadata, :debug)
+    formatted_message = format_message_with_metadata(message, enriched_metadata)
     
-    Logger.debug(message, enriched_metadata)
+    Logger.debug(formatted_message)
     record_log_metric(:debug)
     :ok
   end
@@ -263,6 +267,27 @@ defmodule EhsEnforcement.Logger do
 
   ## Private Functions
 
+  defp format_message_with_metadata(message, metadata) when is_map(metadata) do
+    # Filter out our own enriched metadata for cleaner logs
+    filtered_metadata = 
+      metadata
+      |> Map.drop([:app, :env, :node, :pid, :timestamp, :level])
+      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+      |> Enum.map(fn {k, v} -> "#{k}=#{format_value(v)}" end)
+      |> Enum.join(" ")
+    
+    if filtered_metadata == "" do
+      message
+    else
+      "#{message} #{filtered_metadata}"
+    end
+  end
+
+  defp format_value(value) when is_binary(value), do: value
+  defp format_value(value) when is_atom(value), do: to_string(value)
+  defp format_value(value) when is_number(value), do: to_string(value)
+  defp format_value(value), do: inspect(value)
+
   defp sanitize_metadata(metadata) when is_map(metadata) do
     metadata
     |> Enum.map(fn {key, value} -> {key, sanitize_value(key, value)} end)
@@ -339,7 +364,7 @@ defmodule EhsEnforcement.Logger do
 
   defp record_error_metric(error) do
     ensure_metrics_tables_exist()
-    error_type = error.__struct__ |> to_string()
+    error_type = error.__struct__ |> to_string() |> String.replace("Elixir.", "")
     
     case :ets.lookup(@error_metrics_table, error_type) do
       [{^error_type, count}] ->

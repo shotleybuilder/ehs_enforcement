@@ -4,6 +4,24 @@ defmodule EhsEnforcement.LoggerTest do
 
   alias EhsEnforcement.Logger, as: EhsLogger
 
+  setup do
+    # Set logger level to debug for tests to capture all log levels
+    original_level = Logger.level()
+    Logger.configure(level: :debug)
+    
+    # Configure console logger to include metadata
+    :logger.set_handler_config(:default, :formatter, 
+      {:logger_formatter, %{template: [:level, " ", :msg, " ", :mfa, " ", :meta, "\n"]}})
+    
+    on_exit(fn ->
+      Logger.configure(level: original_level)
+      # Reset to default formatter
+      :logger.set_handler_config(:default, :formatter, {:logger_formatter, %{}})
+    end)
+    
+    :ok
+  end
+
   describe "structured logging" do
     test "logs info messages with structured metadata" do
       metadata = %{
@@ -17,7 +35,7 @@ defmodule EhsEnforcement.LoggerTest do
         EhsLogger.info("Sync operation completed", metadata)
       end)
       
-      assert log =~ "[info]"
+      assert log =~ "info"
       assert log =~ "Sync operation completed"
       assert log =~ "operation=sync_cases"
       assert log =~ "agency=hse"
@@ -39,7 +57,7 @@ defmodule EhsEnforcement.LoggerTest do
         EhsLogger.error("Database operation failed", error, stacktrace, metadata)
       end)
       
-      assert log =~ "[error]"
+      assert log =~ "error"
       assert log =~ "Database operation failed"
       assert log =~ "Database connection failed"
       assert log =~ "operation=database_query"
@@ -59,7 +77,7 @@ defmodule EhsEnforcement.LoggerTest do
         EhsLogger.warn("Found invalid records during sync", metadata)
       end)
       
-      assert log =~ "[warn]"
+      assert log =~ "warning"
       assert log =~ "Found invalid records during sync"
       assert log =~ "invalid_records=5"
       assert log =~ "total_records=100"
@@ -76,7 +94,7 @@ defmodule EhsEnforcement.LoggerTest do
         EhsLogger.debug("Processing batch of records", metadata)
       end)
       
-      assert log =~ "[debug]"
+      assert log =~ "debug"
       assert log =~ "Processing batch of records"
       assert log =~ "batch_size=50"
     end
@@ -95,7 +113,7 @@ defmodule EhsEnforcement.LoggerTest do
         EhsLogger.log_auth_success("User login successful", metadata)
       end)
       
-      assert log =~ "[info]"
+      assert log =~ "info"
       assert log =~ "User login successful"
       assert log =~ "user_id=user123"
       assert log =~ "ip_address=192.168.1.100"
@@ -114,7 +132,7 @@ defmodule EhsEnforcement.LoggerTest do
         EhsLogger.log_auth_failure("Login attempt failed", metadata)
       end)
       
-      assert log =~ "[warn]"
+      assert log =~ "warning"
       assert log =~ "Login attempt failed"
       assert log =~ "attempted_user=admin"
       assert log =~ "failure_reason=invalid_password"
@@ -135,7 +153,7 @@ defmodule EhsEnforcement.LoggerTest do
         EhsLogger.log_data_access("User accessed enforcement cases", metadata)
       end)
       
-      assert log =~ "[info]"
+      assert log =~ "info"
       assert log =~ "User accessed enforcement cases"
       assert log =~ "resource=cases"
       assert log =~ "action=view"
@@ -156,7 +174,7 @@ defmodule EhsEnforcement.LoggerTest do
         EhsLogger.log_data_modification("Case status updated", metadata)
       end)
       
-      assert log =~ "[info]"
+      assert log =~ "info"
       assert log =~ "Case status updated"
       assert log =~ "action=update"
       assert log =~ "resource_id=case_456"
@@ -177,7 +195,7 @@ defmodule EhsEnforcement.LoggerTest do
         EhsLogger.log_slow_operation("Slow database query detected", metadata)
       end)
       
-      assert log =~ "[warn]"
+      assert log =~ "warning"
       assert log =~ "Slow database query detected"
       assert log =~ "duration_ms=2500"
       assert log =~ "threshold_ms=1000"
@@ -196,7 +214,7 @@ defmodule EhsEnforcement.LoggerTest do
         EhsLogger.log_resource_usage("High memory usage detected", metadata)
       end)
       
-      assert log =~ "[warn]"
+      assert log =~ "warning"
       assert log =~ "High memory usage detected"
       assert log =~ "current_usage=85.5"
       assert log =~ "resource_type=memory"
@@ -219,7 +237,7 @@ defmodule EhsEnforcement.LoggerTest do
         EhsLogger.log_sync_progress("HSE sync in progress", metadata)
       end)
       
-      assert log =~ "[info]"
+      assert log =~ "info"
       assert log =~ "HSE sync in progress"
       assert log =~ "progress_percent=50.0"
       assert log =~ "business_event=sync_progress"
@@ -240,7 +258,7 @@ defmodule EhsEnforcement.LoggerTest do
         EhsLogger.log_validation_errors("Data validation failed", metadata)
       end)
       
-      assert log =~ "[warn]"
+      assert log =~ "warning"
       assert log =~ "Data validation failed"
       assert log =~ "validation_errors"
       assert log =~ "business_event=validation_failure"
@@ -261,7 +279,7 @@ defmodule EhsEnforcement.LoggerTest do
         EhsLogger.log_duplicate_detected("Duplicate offender detected", metadata)
       end)
       
-      assert log =~ "[info]"
+      assert log =~ "info"
       assert log =~ "Duplicate offender detected"
       assert log =~ "similarity_score=0.95"
       assert log =~ "business_event=duplicate_detection"

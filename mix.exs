@@ -72,7 +72,8 @@ defmodule EhsEnforcement.MixProject do
       {:hackney, "~> 1.18"},
       {:csv, "~> 3.0"},
       {:number, "~> 1.0"},
-      {:ex_prompt, "~> 0.2.0"}
+      {:ex_prompt, "~> 0.2.0"},
+      {:dotenv, "~> 3.1.0", only: [:dev, :test]}
     ]
   end
 

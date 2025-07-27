@@ -4,6 +4,18 @@ defmodule EhsEnforcement.TelemetryTest do
 
   alias EhsEnforcement.Telemetry
 
+  setup do
+    # Set logger level to debug for tests to capture all log levels
+    original_level = Logger.level()
+    Logger.configure(level: :debug)
+    
+    on_exit(fn ->
+      Logger.configure(level: original_level)
+    end)
+    
+    :ok
+  end
+
   describe "telemetry event handling" do
     test "handles sync start events with proper logging" do
       measurements = %{system_time: System.system_time()}
@@ -41,7 +53,7 @@ defmodule EhsEnforcement.TelemetryTest do
       
       assert log =~ "Sync failed for hse"
       assert log =~ "timeout"
-      assert log =~ "[error]"
+      assert log =~ "error"
     end
 
     test "handles database query events for performance monitoring" do
@@ -65,7 +77,7 @@ defmodule EhsEnforcement.TelemetryTest do
         Telemetry.handle_event([:repo, :query], measurements, metadata, %{})
       end)
       
-      assert log =~ "[warn]"
+      assert log =~ "warning"
       assert log =~ "Slow database query"
       assert log =~ "2000ms"
     end
@@ -101,7 +113,7 @@ defmodule EhsEnforcement.TelemetryTest do
         Telemetry.handle_event([:phoenix, :live_view, :mount, :exception], measurements, metadata, %{})
       end)
       
-      assert log =~ "[error]"
+      assert log =~ "error"
       assert log =~ "LiveView mount failed"
       assert log =~ "CaseLive.Index"
       assert log =~ "View crashed"
@@ -139,7 +151,7 @@ defmodule EhsEnforcement.TelemetryTest do
         Telemetry.handle_event([:phoenix, :endpoint, :stop], measurements, metadata, %{})
       end)
       
-      assert log =~ "[warn]"
+      assert log =~ "warning"
       assert log =~ "HTTP request failed"
       assert log =~ "POST /api/sync"
       assert log =~ "status=500"

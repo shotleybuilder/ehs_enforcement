@@ -148,7 +148,37 @@ This is a Phoenix LiveView application for collecting and managing UK environmen
 - HSE enforcement logic has existing test coverage in `test/ehs_enforcement/countries/uk/legl_enforcement/`
 - Use `mix test path/to/specific_test.exs` for single test files
 
-**MANUAL TESTING APPROACH (Recommended):**
+**⚠️ CRITICAL TESTING RULES:**
+- **NEVER create scripts in `/scripts` for testing** - Always use proper ExUnit tests in `/test` folder
+- **ALWAYS use ExUnit framework** with `describe` blocks, proper `setup` callbacks, and `test` macros
+- **FOLLOW Phoenix LiveView testing patterns** using `Phoenix.LiveViewTest` for LiveView components
+- **USE proper test assertions** like `assert`, `refute`, `assert_receive`, etc.
+- **CREATE integration tests** in `/test` folder that mirror real application usage
+- **INCLUDE proper test setup and teardown** with database transactions
+
+### ExUnit Testing Patterns
+```elixir
+defmodule MyAppWeb.MyLiveTest do
+  use MyAppWeb.ConnCase
+  import Phoenix.LiveViewTest
+
+  describe "LiveView functionality" do
+    setup do
+      # Setup test data using Ash patterns
+      {:ok, user} = MyApp.Accounts.create_user(%{...})
+      %{user: user}
+    end
+
+    test "displays data correctly", %{conn: conn, user: user} do
+      {:ok, view, html} = live(conn, "/path")
+      assert html =~ "expected content"
+      assert has_element?(view, "[data-testid='element']")
+    end
+  end
+end
+```
+
+**MANUAL TESTING APPROACH (Secondary):**
 1. **Use Tidewave MCP** to examine test results and outputs instead of running tests directly
 2. **Access via**: /home/jason/mcp-proxy http://localhost:4000/tidewave/mcp
 3. **Query test files** and examine expected vs actual behavior through MCP interface

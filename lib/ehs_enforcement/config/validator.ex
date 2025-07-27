@@ -166,11 +166,7 @@ defmodule EhsEnforcement.Config.Validator do
   end
 
   defp detect_environment do
-    case System.get_env("MIX_ENV") do
-      "prod" -> :prod
-      "dev" -> :dev
-      "test" -> :test
-      _ -> :dev
-    end
+    # Use Application.get_env which respects MIX_ENV at runtime
+    Application.get_env(:ehs_enforcement, :environment, :dev)
   end
 end

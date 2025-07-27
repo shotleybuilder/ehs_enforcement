@@ -1,5 +1,26 @@
 import Config
 
+# Load environment variables from .env.local in development
+if config_env() in [:dev, :test] do
+  case File.read(".env.local") do
+    {:ok, content} ->
+      content
+      |> String.split("\n")
+      |> Enum.each(fn line ->
+        line = String.trim(line)
+        if line != "" and not String.starts_with?(line, "#") do
+          case String.split(line, "=", parts: 2) do
+            [key, value] -> System.put_env(String.trim(key), String.trim(value))
+            _ -> :ok
+          end
+        end
+      end)
+    {:error, _} ->
+      # .env.local file doesn't exist, continue without it
+      :ok
+  end
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration

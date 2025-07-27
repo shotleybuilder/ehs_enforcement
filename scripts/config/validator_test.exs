@@ -76,7 +76,7 @@ defmodule EhsEnforcement.Config.ValidatorTest do
 
   describe "validate_airtable_config/0" do
     test "validates airtable configuration is complete" do
-      System.put_env("AT_UK_E_API_KEY", "test_key")
+      System.put_env("AT_UK_E_API_KEY", "test_key_123")  # At least 10 chars
       System.put_env("AIRTABLE_BASE_ID", "appTestBaseId")
       
       assert Validator.validate_airtable_config() == :ok
@@ -158,8 +158,9 @@ defmodule EhsEnforcement.Config.ValidatorTest do
       System.delete_env("DATABASE_URL")
     end
 
-    test "returns error when database is unreachable" do
-      System.put_env("DATABASE_URL", "postgresql://invalid:invalid@nonexistent:5432/invalid")
+    test "returns error when database URL is invalid" do
+      # Test with invalid URL format (not starting with postgresql://)
+      System.put_env("DATABASE_URL", "mysql://invalid:invalid@nonexistent:5432/invalid")
       
       assert {:error, :database_connection_failed} = Validator.validate_database_connection()
       

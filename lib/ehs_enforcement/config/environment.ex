@@ -87,8 +87,8 @@ defmodule EhsEnforcement.Config.Environment do
   """
   def validate_var("AT_UK_E_API_KEY", value) do
     cond do
-      String.length(value) < 10 -> {:error, :too_short}
       value == "" -> {:error, :invalid_format}
+      String.length(value) < 10 -> {:error, :too_short}
       true -> :ok
     end
   end

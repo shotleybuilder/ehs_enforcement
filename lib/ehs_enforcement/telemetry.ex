@@ -7,6 +7,7 @@ defmodule EhsEnforcement.Telemetry do
   """
 
   require Logger
+  alias EhsEnforcement.Logger, as: EhsLogger
   
   # List of telemetry events this module handles
   @events [
@@ -55,86 +56,86 @@ defmodule EhsEnforcement.Telemetry do
   Main telemetry event handler that routes events to specific handlers.
   """
   def handle_event([:sync, :start], measurements, metadata, _config) do
-    Logger.info("Starting sync for #{metadata.agency}",
+    EhsLogger.info("Starting sync for #{metadata.agency}", %{
       operation: metadata[:operation],
       agency: metadata.agency,
       system_time: measurements[:system_time]
-    )
+    })
   end
 
   def handle_event([:sync, :stop], measurements, metadata, _config) do
     duration = System.convert_time_unit(measurements.duration, :native, :millisecond)
     
-    Logger.info("Sync completed for #{metadata.agency} in #{duration}ms",
+    EhsLogger.info("Sync completed for #{metadata.agency} in #{duration}ms", %{
       operation: metadata[:operation],
       agency: metadata.agency,
       duration_ms: duration,
       records_processed: metadata[:records_processed]
-    )
+    })
   end
 
   def handle_event([:sync, :exception], _measurements, metadata, _config) do
     error_info = inspect(metadata.error)
     
-    Logger.error("Sync failed for #{metadata.agency}: #{error_info}",
+    EhsLogger.error("Sync failed for #{metadata.agency}", metadata.error, metadata[:stacktrace] || [], %{
       operation: metadata[:operation],
-      agency: metadata.agency,
-      error: error_info,
-      stacktrace: metadata[:stacktrace]
-    )
+      agency: metadata.agency
+    })
   end
 
   def handle_event([:repo, :query], measurements, metadata, _config) do
     duration = System.convert_time_unit(measurements.duration, :native, :millisecond)
     
     if duration > 1000 do
-      Logger.warning("Slow database query detected in #{duration}ms: #{metadata.query}",
+      EhsLogger.warn("Slow database query detected", %{
         duration_ms: duration,
         query: metadata.query,
         params: length(metadata[:params] || [])
-      )
-    else
-      Logger.debug("Database query completed in #{duration}ms",
-        duration_ms: duration,
-        query: metadata.query
-      )
+      })
     end
+    
+    # Always log query completion
+    EhsLogger.info("Database query completed", %{
+      duration_ms: duration,
+      query: metadata.query
+    })
   end
 
   def handle_event([:phoenix, :live_view, :mount, :start], measurements, metadata, _config) do
-    view_name = metadata.socket.view |> Module.split() |> List.last()
+    view_name = metadata.socket.view |> to_string() |> String.split(".") |> Enum.take(-2) |> Enum.join(".")
     
-    Logger.info("LiveView mount started for #{view_name}",
+    EhsLogger.info("LiveView mount started", %{
       view: view_name,
       user_id: metadata.session[:user_id],
       system_time: measurements[:system_time]
-    )
+    })
   end
 
   def handle_event([:phoenix, :live_view, :mount, :exception], _measurements, metadata, _config) do
-    view_name = metadata.socket.view |> Module.split() |> List.last()
-    error_info = inspect(metadata.reason)
+    view_name = metadata.socket.view |> to_string() |> String.split(".") |> Enum.take(-2) |> Enum.join(".")
     
-    Logger.error("LiveView mount failed for #{view_name}: #{error_info}",
+    EhsLogger.error("LiveView mount failed", metadata.reason, metadata[:stacktrace] || [], %{
       view: view_name,
-      error: error_info,
       kind: metadata.kind
-    )
+    })
   end
 
   def handle_event([:phoenix, :endpoint, :stop], measurements, metadata, _config) do
     duration = System.convert_time_unit(measurements.duration, :native, :millisecond)
     
-    log_level = if metadata.status >= 500, do: :warning, else: :info
-    message = if metadata.status >= 500, do: "HTTP request failed", else: "HTTP request completed"
-    
-    Logger.log(log_level, "#{message}: #{metadata.method} #{metadata.path}",
+    log_metadata = %{
       method: metadata.method,
       path: metadata.path,
       status: metadata.status,
       duration_ms: duration,
       user_agent: metadata[:user_agent]
-    )
+    }
+    
+    if metadata.status >= 500 do
+      EhsLogger.warn("HTTP request failed", log_metadata)
+    else
+      EhsLogger.info("HTTP request completed", log_metadata)
+    end
   end
 
   ## Error Categorization

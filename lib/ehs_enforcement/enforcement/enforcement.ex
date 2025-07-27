@@ -216,16 +216,22 @@ defmodule EhsEnforcement.Enforcement do
         end)
     end
     
-    case Ash.aggregate(query, {aggregate_type, field}) do
+    case Ash.aggregate(query, {aggregate_type, field}, field_type: :decimal) do
       {:ok, result} -> 
-        Map.get(result, aggregate_type, 0)
+        Map.get(result, aggregate_type, Decimal.new(0))
       {:error, error} -> 
         raise error
     end
   end
 
   def sum_fines!(opts \\ []) do
-    aggregate_cases!(:sum, :offence_fine, opts)
+    filter = opts[:filter] || []
+    
+    cases = list_cases!(filter: filter)
+    |> Enum.map(& &1.offence_fine || Decimal.new(0))
+    |> Enum.reduce(Decimal.new(0), &Decimal.add/2)
+    
+    cases
   end
 
   # Offender list function
@@ -334,6 +340,30 @@ defmodule EhsEnforcement.Enforcement do
   def get_notice!(id, opts \\ []) do
     EhsEnforcement.Enforcement.Notice
     |> Ash.get!(id, opts)
+  end
+
+  def count_notices!(opts \\ []) do
+    query = EhsEnforcement.Enforcement.Notice
+    
+    # Apply filters if provided
+    query = case opts[:filter] do
+      nil -> query
+      filters ->
+        Enum.reduce(filters, query, fn
+          {:agency_id, value}, q -> Ash.Query.filter(q, agency_id == ^value)
+          _, q -> q
+        end)
+    end
+    
+    case Ash.count(query) do
+      {:ok, count} -> count
+      {:error, error} -> raise error
+    end
+  end
+
+  def destroy_notice!(notice_record) do
+    notice_record
+    |> Ash.destroy!()
   end
 
   # Breach functions

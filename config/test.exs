@@ -1,5 +1,8 @@
 import Config
 
+# Set the environment
+config :ehs_enforcement, :environment, :test
+
 # Configure your database
 #
 # The MIX_TEST_PARTITION environment variable can be used
