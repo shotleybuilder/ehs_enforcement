@@ -103,3 +103,6 @@ temp_extraction/
 airtable_data.ex
 hse_enforcement_data.ex
 
+# Claude code sessions
+/sessions
+/claude-sessions

@@ -139,6 +139,20 @@
       </div>
     </div>
 
+    <!-- Summary Statistics -->
+    <div class="bg-white overflow-hidden shadow rounded-lg mb-8">
+      <div class="px-4 py-5 sm:p-6">
+        <div class="flex items-center justify-between">
+          <div class="text-lg font-medium text-gray-900">
+            <%= @stats.active_agencies %> Agencies • <%= @stats.total_cases %> Total Cases
+          </div>
+          <div class="text-sm text-gray-500">
+            All time statistics
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Agency Cards -->
     <div class="mb-8">
       <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Agency Overview</h3>
@@ -199,7 +213,7 @@
       </div>
 
       <!-- Recent Activity Table -->
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto" data-testid="recent-cases">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>

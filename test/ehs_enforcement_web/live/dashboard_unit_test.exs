@@ -16,13 +16,13 @@ defmodule EhsEnforcementWeb.DashboardUnitTest do
       {:ok, hse} = Enforcement.create_agency(%{
         code: :hse,
         name: "Health and Safety Executive",
-        active: true
+        enabled: true
       })
 
       {:ok, ea} = Enforcement.create_agency(%{
         code: :ea,
         name: "Environment Agency", 
-        active: true
+        enabled: true
       })
 
       {:ok, offender1} = Enforcement.create_offender(%{
@@ -189,7 +189,7 @@ defmodule EhsEnforcementWeb.DashboardUnitTest do
         {:ok, agency} = Enforcement.create_agency(%{
           code: code,
           name: "#{code |> to_string() |> String.upcase()} Agency",
-          active: code != :onr # ONR disabled for testing
+          enabled: code != :onr # ONR disabled for testing
         })
         agency
       end)
@@ -206,7 +206,7 @@ defmodule EhsEnforcementWeb.DashboardUnitTest do
       # Create cases with varying fines and dates
       base_date = ~D[2024-01-01]
       cases = Enum.flat_map(agencies, fn agency ->
-        if agency.active do
+        if agency.enabled do
           Enum.map(1..3, fn i ->
             {:ok, case_record} = Enforcement.create_case(%{
               regulator_id: "#{agency.code |> to_string() |> String.upcase()}-#{i}",
@@ -227,7 +227,7 @@ defmodule EhsEnforcementWeb.DashboardUnitTest do
     end
 
     test "generates per-agency statistics", %{agencies: agencies} do
-      enabled_agencies = Enum.filter(agencies, & &1.active)
+      enabled_agencies = Enum.filter(agencies, & &1.enabled)
       
       stats = Enum.map(enabled_agencies, fn agency ->
         %{
@@ -249,7 +249,7 @@ defmodule EhsEnforcementWeb.DashboardUnitTest do
     end
 
     test "handles disabled agencies in statistics", %{agencies: agencies} do
-      disabled_agency = Enum.find(agencies, &(not &1.active))
+      disabled_agency = Enum.find(agencies, &(not &1.enabled))
       
       disabled_stats = %{
         agency_id: disabled_agency.id,
@@ -264,7 +264,7 @@ defmodule EhsEnforcementWeb.DashboardUnitTest do
     test "calculates system-wide statistics", %{agencies: agencies, cases: cases} do
       system_stats = %{
         total_agencies: length(agencies),
-        enabled_agencies: length(Enum.filter(agencies, & &1.active)),
+        enabled_agencies: length(Enum.filter(agencies, & &1.enabled)),
         total_cases: Enforcement.count_cases!()
         # total_fines: Enforcement.sum_fines!() # Skip for now
       }
@@ -278,8 +278,8 @@ defmodule EhsEnforcementWeb.DashboardUnitTest do
 
   describe "Dashboard Data Filtering" do
     setup do
-      {:ok, hse} = Enforcement.create_agency(%{code: :hse, name: "HSE", active: true})
-      {:ok, ea} = Enforcement.create_agency(%{code: :ea, name: "EA", active: true})
+      {:ok, hse} = Enforcement.create_agency(%{code: :hse, name: "HSE", enabled: true})
+      {:ok, ea} = Enforcement.create_agency(%{code: :ea, name: "EA", enabled: true})
       
       {:ok, offender} = Enforcement.create_offender(%{name: "Filter Test Corp"})
       
@@ -354,7 +354,7 @@ defmodule EhsEnforcementWeb.DashboardUnitTest do
         {:ok, agency} = Enforcement.create_agency(%{
           code: code,
           name: "Performance Agency (#{code})",
-          active: true
+          enabled: true
         })
         agency
       end)
@@ -429,7 +429,7 @@ defmodule EhsEnforcementWeb.DashboardUnitTest do
           {:ok, agency} = Enforcement.create_agency(%{
             code: code,
             name: "Memory Test Agency #{i} (#{code})",
-            active: true
+            enabled: true
           })
           [agency]
         else
@@ -473,7 +473,7 @@ defmodule EhsEnforcementWeb.DashboardUnitTest do
       {:ok, agency} = Enforcement.create_agency(%{
         code: :hse,
         name: "Test Agency",
-        active: true
+        enabled: true
       })
       
       {:ok, offender} = Enforcement.create_offender(%{name: "Test Company"})
@@ -509,7 +509,7 @@ defmodule EhsEnforcementWeb.DashboardUnitTest do
       {:ok, agency} = Enforcement.create_agency(%{
         code: :ea,
         name: "Concurrent Test Agency",
-        active: true
+        enabled: true
       })
       
       # Simulate concurrent access

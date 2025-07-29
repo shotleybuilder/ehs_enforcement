@@ -202,6 +202,12 @@ defmodule EhsEnforcementWeb.DashboardLive do
   end
 
   @impl true
+  def handle_info({:sync_complete, agency_code, _timestamp}, socket) do
+    # Handle sync completion with timestamp
+    handle_info({:sync_complete, agency_code}, socket)
+  end
+
+  @impl true
   def handle_info({:sync_complete, agency_code}, socket) do
     # Reload data after sync
     agencies = Enforcement.list_agencies!()
@@ -342,10 +348,12 @@ defmodule EhsEnforcementWeb.DashboardLive do
     %{
       recent_cases: recent_cases_count,
       recent_notices: recent_notices_count,
+      total_cases: length(all_cases),
+      total_notices: length(all_notices),
       total_fines: recent_total_fines,
       active_agencies: Enum.count(agencies, & &1.enabled),
       agency_stats: agency_stats,
-      period: "30 days",
+      period: "30 days", 
       timeframe: "Last 30 Days"
     }
   end

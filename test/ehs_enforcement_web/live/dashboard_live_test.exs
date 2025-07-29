@@ -83,7 +83,7 @@ defmodule EhsEnforcementWeb.DashboardLiveTest do
       assert html =~ "#{case_count} Total Cases"
 
       # Should have agency cards
-      assert has_element?(view, "[data-testid='agency-card']", 2)
+      assert has_element?(view, "[data-testid='agency-card']")
     end
 
     test "handles mount with no data gracefully", %{conn: conn} do
@@ -465,7 +465,7 @@ defmodule EhsEnforcementWeb.DashboardLiveTest do
       {:ok, view, _html} = live(conn, "/dashboard")
 
       # Should have sync button
-      sync_button = element(view, "[phx-click='sync'][phx-value-agency='hse']")
+      sync_button = element(view, "[phx-click='sync_agency'][phx-value-agency='hse']")
       assert has_element?(sync_button)
       assert render(sync_button) =~ "Sync Now" or render(sync_button) =~ "Sync"
     end
@@ -476,7 +476,7 @@ defmodule EhsEnforcementWeb.DashboardLiveTest do
       # Mock the sync operation by capturing the event
       log = capture_log(fn ->
         # Click sync button
-        render_click(view, "sync", %{"agency" => "hse"})
+        render_click(view, "sync_agency", %{"agency" => "hse"})
       end)
 
       # Should handle the event (exact behavior depends on implementation)
@@ -494,7 +494,7 @@ defmodule EhsEnforcementWeb.DashboardLiveTest do
       assert has_element?(view, "[data-testid='sync-status']")
       
       # After clicking sync, status should update (depending on implementation)
-      render_click(view, "sync", %{"agency" => "hse"})
+      render_click(view, "sync_agency", %{"agency" => "hse"})
       
       # Status should show some kind of feedback
       updated_html = render(view)

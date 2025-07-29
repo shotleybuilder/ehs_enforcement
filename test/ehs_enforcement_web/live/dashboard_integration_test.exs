@@ -150,12 +150,12 @@ defmodule EhsEnforcementWeb.DashboardIntegrationTest do
       {:ok, view, _html} = live(conn, "/dashboard")
 
       # 1. Initial state - verify sync button is available
-      sync_button = element(view, "[phx-click='sync'][phx-value-agency='hse']")
+      sync_button = element(view, "[phx-click='sync_agency'][phx-value-agency='hse']")
       assert has_element?(sync_button)
 
       # 2. Mock sync operation (in real implementation, this would trigger actual sync)
       log = capture_log(fn ->
-        render_click(view, "sync", %{"agency" => "hse"})
+        render_click(view, "sync_agency", %{"agency" => "hse"})
       end)
 
       # 3. Verify sync was triggered without errors
@@ -174,15 +174,15 @@ defmodule EhsEnforcementWeb.DashboardIntegrationTest do
       assert final_html =~ "Complete" or final_html =~ "Success" or final_html =~ "Last Sync"
 
       # 6. Verify sync button is re-enabled
-      assert has_element?(view, "[phx-click='sync'][phx-value-agency='hse']")
+      assert has_element?(view, "[phx-click='sync_agency'][phx-value-agency='hse']")
     end
 
     test "real-time sync updates across multiple agencies", %{conn: conn, hse: hse, ea: ea} do
       {:ok, view, _html} = live(conn, "/dashboard")
 
       # 1. Simulate simultaneous sync operations on different agencies
-      send(view.pid, {:sync_started, "hse"})
-      send(view.pid, {:sync_started, "ea"})
+      send(view.pid, {:sync_progress, "hse", 0})
+      send(view.pid, {:sync_progress, "ea", 0})
       
       # 2. Send progress updates
       send(view.pid, {:sync_progress, "hse", 30})
@@ -371,7 +371,7 @@ defmodule EhsEnforcementWeb.DashboardIntegrationTest do
       # 6. Test with keyboard navigation simulation
       # In a real test, you'd simulate tab navigation and enter key presses
       # For now, verify the structure supports it
-      sync_buttons = element(view, "[phx-click='sync']", :all)
+      sync_buttons = view |> element("[phx-click='sync_agency']")
       assert has_element?(sync_buttons)
     end
 
@@ -387,7 +387,7 @@ defmodule EhsEnforcementWeb.DashboardIntegrationTest do
 
       # 3. Verify touch-friendly button sizes
       # (In real testing, this would check computed styles)
-      sync_buttons = element(view, "[phx-click='sync']", :all) |> render()
+      sync_buttons = view |> element("[phx-click='sync_agency']") |> render()
       assert sync_buttons =~ "p-" or sync_buttons =~ "py-" # Adequate padding
 
       # 4. Check for mobile navigation patterns

@@ -15,6 +15,18 @@ defmodule EhsEnforcementWeb.Components.AgencyCard do
             <%= if @agency.enabled, do: "Active", else: "Inactive" %>
           </span>
         </div>
+        <div data-testid="sync-status" class="text-sm text-gray-500">
+          <%= case @sync_status do %>
+            <% %{status: "syncing"} -> %>
+              <span class="text-blue-600">Syncing...</span>
+            <% %{status: "completed"} -> %>
+              <span class="text-green-600">Complete</span>
+            <% %{status: "error"} -> %>
+              <span class="text-red-600">Error</span>
+            <% _ -> %>
+              <span>Never</span>
+          <% end %>
+        </div>
         <%= if @agency.enabled do %>
           <button
             phx-click="sync_agency"

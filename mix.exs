@@ -32,10 +32,12 @@ defmodule EhsEnforcement.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:usage_rules, "~> 0.1", only: [:dev]},
       {:phoenix, "~> 1.7.21"},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.10"},
       {:postgrex, ">= 0.0.0"},
+      {:igniter, "~> 0.6", only: [:dev, :test]},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_view, "~> 1.0"},
