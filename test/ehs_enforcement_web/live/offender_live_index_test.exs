@@ -92,7 +92,7 @@ defmodule EhsEnforcementWeb.OffenderLive.IndexTest do
         regulator_id: "HSE-N-2024-001",
         agency_id: hse_agency.id,
         offender_id: repeat_offender.id,
-        notice_type: "improvement_notice",
+        offence_action_type: "improvement_notice",
         notice_date: base_date,
         operative_date: Date.add(base_date, 7),
         compliance_date: Date.add(base_date, 30),
