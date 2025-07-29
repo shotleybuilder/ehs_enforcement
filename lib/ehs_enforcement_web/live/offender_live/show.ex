@@ -166,8 +166,10 @@ defmodule EhsEnforcementWeb.OffenderLive.Show do
 
   defp get_offender_with_details(id) do
     try do
-      offender = Enforcement.get_offender!(id, load: [:cases, :notices])
-      {:ok, offender}
+      case Enforcement.get_offender!(id, load: [:cases, :notices]) do
+        {:ok, offender} -> {:ok, offender}
+        offender -> {:ok, offender}
+      end
     rescue
       Ash.Error.Query.NotFound ->
         {:error, %Ash.Error.Query.NotFound{}}
@@ -243,8 +245,11 @@ defmodule EhsEnforcementWeb.OffenderLive.Show do
     end
   end
 
+  defp get_action_date(%{offence_action_date: nil}), do: ~D[1900-01-01]
   defp get_action_date(%{offence_action_date: date}), do: date
+  defp get_action_date(%{notice_date: nil}), do: ~D[1900-01-01]
   defp get_action_date(%{notice_date: date}), do: date
+  defp get_action_date(_), do: ~D[1900-01-01]
 
   defp group_by_year(timeline) do
     timeline

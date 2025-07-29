@@ -382,7 +382,7 @@
                           <div class="flex justify-between items-start">
                             <div>
                               <div class="text-sm font-medium text-gray-900">
-                                <%= String.replace(action.notice_type, "_", " ") |> String.capitalize() %>: <%= action.regulator_id %>
+                                <%= String.replace(action.offence_action_type, "_", " ") |> String.capitalize() %>: <%= action.regulator_id %>
                               </div>
                               <div class="text-xs text-gray-500 mt-1 space-x-4">
                                 <span>Notice Date: <%= Date.to_string(action.notice_date) %></span>
