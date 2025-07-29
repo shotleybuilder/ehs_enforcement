@@ -51,7 +51,7 @@ defmodule EhsEnforcementWeb.NoticeSearchTest do
         regulator_ref_number: "HSE/SAFETY/001",
         agency_id: hse_agency.id,
         offender_id: manufacturing_offender.id,
-        notice_type: "Improvement Notice",
+        offence_action_type: "Improvement Notice",
         notice_date: ~D[2024-01-15],
         operative_date: ~D[2024-01-29],
         compliance_date: ~D[2024-03-15],
@@ -63,7 +63,7 @@ defmodule EhsEnforcementWeb.NoticeSearchTest do
         regulator_ref_number: "HSE/CONSTRUCT/002",
         agency_id: hse_agency.id,
         offender_id: construction_offender.id,
-        notice_type: "Prohibition Notice",
+        offence_action_type: "Prohibition Notice",
         notice_date: ~D[2024-01-20],
         operative_date: ~D[2024-01-20],
         compliance_date: ~D[2024-02-20],
@@ -75,7 +75,7 @@ defmodule EhsEnforcementWeb.NoticeSearchTest do
         regulator_ref_number: "EA/ENV/003",
         agency_id: ea_agency.id,
         offender_id: energy_offender.id,
-        notice_type: "Enforcement Notice",
+        offence_action_type: "Enforcement Notice",
         notice_date: ~D[2024-01-25],
         operative_date: ~D[2024-02-08],
         compliance_date: ~D[2024-04-25],
@@ -87,7 +87,7 @@ defmodule EhsEnforcementWeb.NoticeSearchTest do
         regulator_ref_number: "HSE/FOLLOWUP/004",
         agency_id: hse_agency.id,
         offender_id: manufacturing_offender.id,
-        notice_type: "Improvement Notice",
+        offence_action_type: "Improvement Notice",
         notice_date: ~D[2024-02-01],
         operative_date: ~D[2024-02-15],
         compliance_date: ~D[2024-05-01],
@@ -247,7 +247,7 @@ defmodule EhsEnforcementWeb.NoticeSearchTest do
 
         html = render(view)
         assert html =~ "chemical" or html =~ "Chemical"
-      end
+      end)
     end
 
     test "searches across multiple notice fields simultaneously", %{conn: conn} do
@@ -491,7 +491,7 @@ defmodule EhsEnforcementWeb.NoticeSearchTest do
           regulator_id: "HSE-PERF-#{String.pad_leading(to_string(i), 3, "0")}",
           agency_id: agency.id,
           offender_id: offender.id,
-          notice_type: "Improvement Notice",
+          offence_action_type: "Improvement Notice",
           notice_date: Date.add(~D[2024-01-01], i),
           notice_body: "Performance test notice #{i} with various safety equipment requirements and chemical handling procedures for testing search functionality across large datasets"
         })
@@ -552,7 +552,7 @@ defmodule EhsEnforcementWeb.NoticeSearchTest do
       html = render(view)
       
       # Should limit results or implement pagination
-      result_count = html |> String.split("HSE-PERF-") |> length() - 1
+      result_count = (html |> String.split("HSE-PERF-") |> length()) - 1
       assert result_count <= 25 # Should limit displayed results
     end
 
@@ -685,7 +685,7 @@ defmodule EhsEnforcementWeb.NoticeSearchTest do
       regulator_id: "HSE-SEARCH-001",
       agency_id: hse_agency.id,
       offender_id: offender.id,
-      notice_type: "Improvement Notice",
+      offence_action_type: "Improvement Notice",
       notice_date: ~D[2024-01-15],
       notice_body: "Chemical safety procedures must be implemented"
     })
@@ -694,7 +694,7 @@ defmodule EhsEnforcementWeb.NoticeSearchTest do
       regulator_id: "HSE-SEARCH-002",
       agency_id: hse_agency.id,
       offender_id: offender.id,
-      notice_type: "Prohibition Notice",
+      offence_action_type: "Prohibition Notice",
       notice_date: ~D[2024-01-20],
       notice_body: "Equipment maintenance protocols required"
     })

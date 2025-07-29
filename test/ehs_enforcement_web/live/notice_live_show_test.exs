@@ -42,7 +42,7 @@ defmodule EhsEnforcementWeb.NoticeLive.ShowTest do
         regulator_ref_number: "HSE/REF/2024/015",
         agency_id: hse_agency.id,
         offender_id: offender.id,
-        notice_type: "Improvement Notice",
+        offence_action_type: "Improvement Notice",
         notice_date: ~D[2024-01-15],
         operative_date: ~D[2024-01-29],
         compliance_date: ~D[2024-03-15],
@@ -55,7 +55,7 @@ defmodule EhsEnforcementWeb.NoticeLive.ShowTest do
         regulator_ref_number: "HSE/REF/2024/002",
         agency_id: hse_agency.id,
         offender_id: offender.id,
-        notice_type: "Prohibition Notice",
+        offence_action_type: "Prohibition Notice",
         notice_date: ~D[2024-01-05],
         operative_date: ~D[2024-01-05],
         compliance_date: ~D[2024-02-05],
@@ -67,7 +67,7 @@ defmodule EhsEnforcementWeb.NoticeLive.ShowTest do
         regulator_ref_number: "HSE/REF/2024/020",
         agency_id: hse_agency.id,
         offender_id: offender.id,
-        notice_type: "Improvement Notice",
+        offence_action_type: "Improvement Notice",
         notice_date: ~D[2024-02-01],
         operative_date: ~D[2024-02-15],
         compliance_date: ~D[2024-04-01],
@@ -200,7 +200,7 @@ defmodule EhsEnforcementWeb.NoticeLive.ShowTest do
         regulator_id: "EA-NOTICE-2024-MIN",
         agency_id: agency.id,
         offender_id: offender.id,
-        notice_type: "Enforcement Notice",
+        offence_action_type: "Enforcement Notice",
         notice_date: ~D[2024-01-01]
         # Missing optional fields
       })
@@ -273,7 +273,7 @@ defmodule EhsEnforcementWeb.NoticeLive.ShowTest do
         regulator_id: "ORR-NOTICE-2024-001",
         agency_id: agency.id,
         offender_id: offender.id,
-        notice_type: "Improvement Notice",
+        offence_action_type: "Improvement Notice",
         notice_date: ~D[2024-01-01]
       })
 
@@ -313,7 +313,7 @@ defmodule EhsEnforcementWeb.NoticeLive.ShowTest do
         regulator_id: "HSE-NOTICE-2023-001",
         agency_id: agency.id,
         offender_id: offender.id,
-        notice_type: "Improvement Notice",
+        offence_action_type: "Improvement Notice",
         notice_date: ~D[2023-01-01],
         compliance_date: ~D[2023-02-01] # Past date
       })
@@ -495,7 +495,7 @@ defmodule EhsEnforcementWeb.NoticeLive.ShowTest do
         regulator_id: "EA-NOTICE-MIN",
         agency_id: agency.id,
         offender_id: offender.id,
-        notice_type: "Enforcement Notice",
+        offence_action_type: "Enforcement Notice",
         notice_date: ~D[2024-01-01]
         # Other fields left nil
       })
@@ -629,7 +629,7 @@ defmodule EhsEnforcementWeb.NoticeLive.ShowTest do
       regulator_ref_number: "HSE/REF/2024/015",
       agency_id: hse_agency.id,
       offender_id: offender.id,
-      notice_type: "Improvement Notice",
+      offence_action_type: "Improvement Notice",
       notice_date: ~D[2024-01-15],
       operative_date: ~D[2024-01-29],
       compliance_date: ~D[2024-03-15],
@@ -642,7 +642,7 @@ defmodule EhsEnforcementWeb.NoticeLive.ShowTest do
       regulator_ref_number: "HSE/REF/2024/002",
       agency_id: hse_agency.id,
       offender_id: offender.id,
-      notice_type: "Prohibition Notice",
+      offence_action_type: "Prohibition Notice",
       notice_date: ~D[2024-01-05],
       operative_date: ~D[2024-01-05],
       compliance_date: ~D[2024-02-05],
@@ -654,7 +654,7 @@ defmodule EhsEnforcementWeb.NoticeLive.ShowTest do
       regulator_ref_number: "HSE/REF/2024/020",
       agency_id: hse_agency.id,
       offender_id: offender.id,
-      notice_type: "Improvement Notice",
+      offence_action_type: "Improvement Notice",
       notice_date: ~D[2024-02-01],
       operative_date: ~D[2024-02-15],
       compliance_date: ~D[2024-04-01],

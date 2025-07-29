@@ -44,22 +44,22 @@
 
           <!-- Notice Type Filter -->
           <div>
-            <label for="notice_type" class="block text-sm font-medium text-gray-700">
+            <label for="offence_action_type" class="block text-sm font-medium text-gray-700">
               Notice Type
             </label>
             <select
-              name="filters[notice_type]"
-              id="notice_type"
+              name="filters[offence_action_type]"
+              id="offence_action_type"
               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             >
               <option value="">All Types</option>
-              <option value="Improvement Notice" selected={@filters[:notice_type] == "Improvement Notice"}>
+              <option value="Improvement Notice" selected={@filters[:offence_action_type] == "Improvement Notice"}>
                 Improvement Notice
               </option>
-              <option value="Prohibition Notice" selected={@filters[:notice_type] == "Prohibition Notice"}>
+              <option value="Prohibition Notice" selected={@filters[:offence_action_type] == "Prohibition Notice"}>
                 Prohibition Notice
               </option>
-              <option value="Enforcement Notice" selected={@filters[:notice_type] == "Enforcement Notice"}>
+              <option value="Enforcement Notice" selected={@filters[:offence_action_type] == "Enforcement Notice"}>
                 Enforcement Notice
               </option>
             </select>
@@ -241,9 +241,9 @@
                     scope="col"
                     class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100"
                     phx-click="sort"
-                    phx-value-field="notice_type"
+                    phx-value-field="offence_action_type"
                   >
-                    Notice Type <%= get_sort_icon(assigns, "notice_type") %>
+                    Notice Type <%= get_sort_icon(assigns, "offence_action_type") %>
                   </th>
                   <th
                     scope="col"
@@ -280,13 +280,13 @@
               </thead>
               <tbody class="divide-y divide-gray-200 bg-white">
                 <%= for notice <- @notices do %>
-                  <tr data-notice-type={notice.notice_type}>
+                  <tr data-notice-type={notice.offence_action_type}>
                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
                       <%= notice.regulator_id %>
                     </td>
                     <td class="whitespace-nowrap px-3 py-4 text-sm">
-                      <span class={["inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", notice_type_class(notice.notice_type)]}>
-                        <%= notice.notice_type %>
+                      <span class={["inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", notice_type_class(notice.offence_action_type)]}>
+                        <%= notice.offence_action_type %>
                       </span>
                     </td>
                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
@@ -338,8 +338,8 @@
                       <div class="flex justify-between items-start">
                         <div class="flex-1">
                           <div class="flex items-center space-x-2">
-                            <span class={["inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", notice_type_class(notice.notice_type)]}>
-                              <%= notice.notice_type %>
+                            <span class={["inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", notice_type_class(notice.offence_action_type)]}>
+                              <%= notice.offence_action_type %>
                             </span>
                             <span class="text-sm font-medium text-gray-900">
                               <%= notice.regulator_id %>

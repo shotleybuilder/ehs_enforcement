@@ -27,8 +27,8 @@
           <div>
             <h1 class="text-2xl font-bold text-gray-900">Notice Details</h1>
             <div class="mt-2 flex items-center space-x-4">
-              <span class={["inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium", notice_type_class(@notice.notice_type)]}>
-                <%= @notice.notice_type %>
+              <span class={["inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium", notice_type_class(@notice.offence_action_type)]}>
+                <%= @notice.offence_action_type %>
               </span>
               <span data-testid="compliance-status" data-compliance-status={@compliance_status.status} class={["inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium", @compliance_status.badge_class]}>
                 <%= String.capitalize(@compliance_status.status) %>
@@ -134,7 +134,7 @@
           <h3 class="text-lg leading-6 font-medium text-gray-900">Offender Information</h3>
         </div>
         <dl class="divide-y divide-gray-200">
-          <%= if @notice.offender do %>
+          <%= if Ash.Resource.loaded?(@notice, :offender) do %>
             <div class="px-4 py-4 sm:px-6 sm:grid sm:grid-cols-3 sm:gap-4">
               <dt class="text-sm font-medium text-gray-500">Company Name</dt>
               <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
@@ -156,7 +156,7 @@
               </dd>
             </div>
             
-            <%= if Map.get(@notice.offender, :main_activity) do %>
+            <%= if @notice.offender.main_activity do %>
               <div class="px-4 py-4 sm:px-6 sm:grid sm:grid-cols-3 sm:gap-4">
                 <dt class="text-sm font-medium text-gray-500">Main Activity</dt>
                 <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
@@ -165,7 +165,7 @@
               </div>
             <% end %>
             
-            <%= if Map.get(@notice.offender, :industry) do %>
+            <%= if @notice.offender.industry do %>
               <div class="px-4 py-4 sm:px-6 sm:grid sm:grid-cols-3 sm:gap-4">
                 <dt class="text-sm font-medium text-gray-500">Industry</dt>
                 <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
@@ -173,6 +173,10 @@
                 </dd>
               </div>
             <% end %>
+          <% else %>
+            <div class="px-4 py-4 sm:px-6">
+              <p class="text-sm text-gray-500">Offender information not available</p>
+            </div>
           <% end %>
         </dl>
       </div>
@@ -243,8 +247,8 @@
                 <div class="flex justify-between items-start">
                   <div>
                     <div class="flex items-center space-x-2">
-                      <span class={["inline-flex items-center px-2 py-0.5 rounded text-xs font-medium", notice_type_class(related_notice.notice_type)]}>
-                        <%= related_notice.notice_type %>
+                      <span class={["inline-flex items-center px-2 py-0.5 rounded text-xs font-medium", notice_type_class(related_notice.offence_action_type)]}>
+                        <%= related_notice.offence_action_type %>
                       </span>
                       <span class="text-sm font-medium text-gray-900">
                         <%= related_notice.regulator_id %>

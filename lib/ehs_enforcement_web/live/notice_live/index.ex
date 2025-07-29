@@ -140,6 +140,12 @@ defmodule EhsEnforcementWeb.NoticeLive.Index do
     {:noreply, load_notices(socket)}
   end
 
+  @impl true
+  def handle_info(_msg, socket) do
+    # Catch-all for any other messages
+    {:noreply, socket}
+  end
+
   # Private functions
 
   defp load_notices(socket) do
@@ -205,19 +211,23 @@ defmodule EhsEnforcementWeb.NoticeLive.Index do
     
     # Add filters
     filter = if filters[:agency_id], do: [{:agency_id, filters[:agency_id]} | filter], else: filter
-    filter = if filters[:notice_type], do: [{:notice_type, filters[:notice_type]} | filter], else: filter
+    filter = if filters[:offence_action_type], do: [{:offence_action_type, filters[:offence_action_type]} | filter], else: filter
     
     # Add date range filters
     filter = if filters[:date_from] do
-      date = Date.from_iso8601!(filters[:date_from])
-      [{:notice_date, {:>=, date}} | filter]
+      case Date.from_iso8601(filters[:date_from]) do
+        {:ok, date} -> [{:notice_date, {:>=, date}} | filter]
+        {:error, _} -> filter  # Ignore invalid dates
+      end
     else
       filter
     end
     
     filter = if filters[:date_to] do
-      date = Date.from_iso8601!(filters[:date_to])
-      [{:notice_date, {:<=, date}} | filter]
+      case Date.from_iso8601(filters[:date_to]) do
+        {:ok, date} -> [{:notice_date, {:<=, date}} | filter]
+        {:error, _} -> filter  # Ignore invalid dates
+      end
     else
       filter
     end
@@ -280,7 +290,7 @@ defmodule EhsEnforcementWeb.NoticeLive.Index do
   defp parse_filters(params) do
     %{}
     |> parse_if_present(params, "agency_id")
-    |> parse_if_present(params, "notice_type")
+    |> parse_if_present(params, "offence_action_type")
     |> parse_if_present(params, "date_from")
     |> parse_if_present(params, "date_to")
     |> parse_if_present(params, "compliance_status")

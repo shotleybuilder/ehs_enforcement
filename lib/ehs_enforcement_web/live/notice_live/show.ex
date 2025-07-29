@@ -23,20 +23,19 @@ defmodule EhsEnforcementWeb.NoticeLive.Show do
          |> push_navigate(to: ~p"/notices")}
       
       notice ->
-        # Load related notices for the same offender
-        related_notices = load_related_notices(notice)
-        
         {:noreply,
          socket
          |> assign(:page_title, "Notice Details")
          |> assign(:notice, notice)
-         |> assign(:related_notices, related_notices)
+         |> assign(:related_notices, [])
          |> assign(:compliance_status, calculate_compliance_status(notice))
          |> assign(:timeline_data, build_timeline_data(notice))
          |> assign(:loading, false)}
     end
   rescue
-    _ ->
+    error ->
+      require Logger
+      Logger.error("Failed to load notice #{id}: #{inspect(error)}")
       {:noreply,
        socket
        |> put_flash(:error, "Notice not found")
@@ -97,7 +96,8 @@ defmodule EhsEnforcementWeb.NoticeLive.Show do
           status: "N/A",
           class: "text-gray-600",
           badge_class: "bg-gray-100 text-gray-800",
-          days_remaining: nil
+          days_remaining: nil,
+          days_overdue: nil
         }
       
       Date.compare(notice.compliance_date, today) == :gt ->
@@ -113,7 +113,8 @@ defmodule EhsEnforcementWeb.NoticeLive.Show do
           status: status,
           class: status_to_class(status),
           badge_class: status_to_badge_class(status),
-          days_remaining: days_remaining
+          days_remaining: days_remaining,
+          days_overdue: nil
         }
       
       true ->
@@ -123,6 +124,7 @@ defmodule EhsEnforcementWeb.NoticeLive.Show do
           status: "overdue",
           class: "text-red-600",
           badge_class: "bg-red-100 text-red-800",
+          days_remaining: nil,
           days_overdue: days_overdue
         }
     end

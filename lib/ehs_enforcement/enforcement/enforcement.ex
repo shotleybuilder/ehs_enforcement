@@ -6,6 +6,7 @@ defmodule EhsEnforcement.Enforcement do
   use Ash.Domain
   
   require Ash.Query
+  import Ash.Expr
 
   resources do
     resource EhsEnforcement.Enforcement.Agency
@@ -145,6 +146,22 @@ defmodule EhsEnforcement.Enforcement do
         Enum.reduce(filters, query, fn
           {:regulator_id, value}, q -> Ash.Query.filter(q, regulator_id == ^value)
           {:agency_id, value}, q -> Ash.Query.filter(q, agency_id == ^value)
+          {:offence_action_date, conditions}, q when is_list(conditions) ->
+            Enum.reduce(conditions, q, fn
+              {:greater_than_or_equal_to, date}, acc_q -> Ash.Query.filter(acc_q, offence_action_date >= ^date)
+              {:less_than_or_equal_to, date}, acc_q -> Ash.Query.filter(acc_q, offence_action_date <= ^date)
+              _, acc_q -> acc_q
+            end)
+          {:offence_fine, conditions}, q when is_list(conditions) ->
+            Enum.reduce(conditions, q, fn
+              {:greater_than_or_equal_to, amount}, acc_q -> Ash.Query.filter(acc_q, offence_fine >= ^amount)
+              {:less_than_or_equal_to, amount}, acc_q -> Ash.Query.filter(acc_q, offence_fine <= ^amount)
+              _, acc_q -> acc_q
+            end)
+          {:search, pattern}, q ->
+            # Handle search with OR conditions using proper Ash syntax
+            # Search in: regulator_id, offence_breaches, and offender.name
+            Ash.Query.filter(q, ilike(regulator_id, ^pattern) or ilike(offence_breaches, ^pattern) or ilike(offender.name, ^pattern))
           _, q -> q
         end)
     end
@@ -188,12 +205,29 @@ defmodule EhsEnforcement.Enforcement do
   def count_cases!(opts \\ []) do
     query = EhsEnforcement.Enforcement.Case
     
-    # Apply filters if provided
+    # Apply filters if provided (use same filter logic as list_cases)
     query = case opts[:filter] do
       nil -> query
       filters ->
         Enum.reduce(filters, query, fn
+          {:regulator_id, value}, q -> Ash.Query.filter(q, regulator_id == ^value)
           {:agency_id, value}, q -> Ash.Query.filter(q, agency_id == ^value)
+          {:offence_action_date, conditions}, q when is_list(conditions) ->
+            Enum.reduce(conditions, q, fn
+              {:greater_than_or_equal_to, date}, acc_q -> Ash.Query.filter(acc_q, offence_action_date >= ^date)
+              {:less_than_or_equal_to, date}, acc_q -> Ash.Query.filter(acc_q, offence_action_date <= ^date)
+              _, acc_q -> acc_q
+            end)
+          {:offence_fine, conditions}, q when is_list(conditions) ->
+            Enum.reduce(conditions, q, fn
+              {:greater_than_or_equal_to, amount}, acc_q -> Ash.Query.filter(acc_q, offence_fine >= ^amount)
+              {:less_than_or_equal_to, amount}, acc_q -> Ash.Query.filter(acc_q, offence_fine <= ^amount)
+              _, acc_q -> acc_q
+            end)
+          {:search, pattern}, q ->
+            # Handle search with OR conditions using proper Ash syntax
+            # Search in: regulator_id, offence_breaches, and offender.name
+            Ash.Query.filter(q, ilike(regulator_id, ^pattern) or ilike(offence_breaches, ^pattern) or ilike(offender.name, ^pattern))
           _, q -> q
         end)
     end
