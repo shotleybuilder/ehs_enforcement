@@ -7,6 +7,7 @@ defmodule EhsEnforcementWeb.CaseLive.CSVExport do
 
   @csv_headers [
     "Case ID",
+    "Regulator ID", 
     "Agency", 
     "Agency Code",
     "Offender Name",
@@ -17,6 +18,25 @@ defmodule EhsEnforcementWeb.CaseLive.CSVExport do
     "Offense Breaches",
     "Total Notices",
     "Total Breaches",
+    "Last Synced",
+    "Created At"
+  ]
+
+  @detailed_csv_headers [
+    "Case ID",
+    "Regulator ID", 
+    "Agency", 
+    "Agency Code",
+    "Offender Name",
+    "Local Authority",
+    "Postcode",
+    "Offense Date",
+    "Fine Amount",
+    "Offense Breaches",
+    "Total Notices",
+    "Total Breaches",
+    "Notice Types",
+    "Notice Actions",
     "Last Synced",
     "Created At"
   ]
@@ -38,6 +58,27 @@ defmodule EhsEnforcementWeb.CaseLive.CSVExport do
     rescue
       error ->
         {:error, "Failed to export cases: #{inspect(error)}"}
+    end
+  end
+
+  @doc """
+  Export cases with detailed information including related notice data
+  """
+  def export_detailed_cases(filters \\ %{}, sort_by \\ :offence_action_date, sort_dir \\ :desc) do
+    # Build query options without pagination for full export
+    query_opts = [
+      filter: build_ash_filter(filters),
+      sort: build_sort_options(sort_by, sort_dir),
+      load: [:offender, :agency]
+    ]
+
+    try do
+      cases = Enforcement.list_cases!(query_opts)
+      cases_with_notices = load_related_notices(cases)
+      generate_detailed_csv(cases_with_notices)
+    rescue
+      error ->
+        {:error, "Failed to export detailed cases: #{inspect(error)}"}
     end
   end
 
@@ -70,6 +111,18 @@ defmodule EhsEnforcementWeb.CaseLive.CSVExport do
   end
 
   @doc """
+  Generate detailed CSV content from list of cases with notice data
+  """
+  def generate_detailed_csv(cases_with_notices) when is_list(cases_with_notices) do
+    csv_content = 
+      [@detailed_csv_headers | Enum.map(cases_with_notices, &case_to_detailed_csv_row/1)]
+      |> Enum.map(&Enum.join(&1, ","))
+      |> Enum.join("\n")
+    
+    {:ok, csv_content}
+  end
+
+  @doc """
   Generate filename for CSV export
   """
   def generate_filename(export_type \\ :all, identifier \\ nil) do
@@ -89,9 +142,86 @@ defmodule EhsEnforcementWeb.CaseLive.CSVExport do
 
   # Private functions
 
+  defp load_related_notices(cases) do
+    # For each case, find notices that have the same agency and offender
+    Enum.map(cases, fn case_record ->
+      notices = Enforcement.list_notices!([
+        filter: [
+          agency_id: case_record.agency_id,
+          offender_id: case_record.offender_id
+        ]
+      ])
+      
+      Map.put(case_record, :related_notices, notices)
+    end)
+  end
+
+  defp case_to_detailed_csv_row(case_record) do
+    # Get notice information
+    notice_types = extract_notice_types(case_record.related_notices || [])
+    notice_actions = extract_notice_actions(case_record.related_notices || [])
+    
+    [
+      escape_csv_field(case_record.regulator_id || ""),
+      escape_csv_field(case_record.regulator_id || ""), # Also include as Regulator ID
+      escape_csv_field(case_record.agency.name || ""),
+      escape_csv_field(to_string(case_record.agency.code) || ""),
+      escape_csv_field(case_record.offender.name || ""),
+      escape_csv_field(case_record.offender.local_authority || ""),
+      escape_csv_field(case_record.offender.postcode || ""),
+      format_date_for_csv(case_record.offence_action_date),
+      format_currency_for_csv(case_record.offence_fine),
+      escape_csv_field(case_record.offence_breaches || ""),
+      length(case_record.related_notices || []), # actual notices count
+      0, # breaches count (not loaded)
+      escape_csv_field(notice_types),
+      escape_csv_field(notice_actions),
+      format_datetime_for_csv(case_record.last_synced_at),
+      format_datetime_for_csv(case_record.inserted_at)
+    ]
+  end
+
+  defp extract_notice_types(notices) do
+    notices
+    |> Enum.map(& &1.offence_action_type)
+    |> Enum.filter(& &1 != nil)
+    |> Enum.join("; ")
+  end
+
+  defp extract_notice_actions(notices) do
+    notices
+    |> Enum.map(fn notice ->
+      action = cond do
+        String.contains?(notice.notice_body || "", "improvement") -> "improvement"
+        String.contains?(notice.notice_body || "", "prohibition") -> "prohibition"
+        true -> notice.offence_action_type
+      end
+      
+      # Add compliance status if available
+      compliance_status = case notice.compliance_date do
+        %Date{} = compliance_date ->
+          if Date.compare(compliance_date, Date.utc_today()) in [:eq, :lt] do
+            "complied"
+          else
+            "pending"
+          end
+        _ -> nil
+      end
+      
+      if compliance_status do
+        "#{action} (#{compliance_status})"
+      else
+        action
+      end
+    end)
+    |> Enum.filter(& &1 != nil)
+    |> Enum.join("; ")
+  end
+
   defp case_to_csv_row(case_record) do
     [
       escape_csv_field(case_record.regulator_id || ""),
+      escape_csv_field(case_record.regulator_id || ""), # Also include as Regulator ID
       escape_csv_field(case_record.agency.name || ""),
       escape_csv_field(to_string(case_record.agency.code) || ""),
       escape_csv_field(case_record.offender.name || ""),
@@ -108,8 +238,8 @@ defmodule EhsEnforcementWeb.CaseLive.CSVExport do
   end
 
   defp escape_csv_field(field) when is_binary(field) do
-    # Handle CSV injection prevention
-    sanitized = String.replace(field, ["=", "+", "-", "@"], "")
+    # Handle CSV injection prevention - remove dangerous prefixes completely
+    sanitized = String.replace(field, ~r/^[=+@-]/, "_")
     
     if String.contains?(sanitized, [",", "\"", "\n", "\r"]) do
       "\"#{String.replace(sanitized, "\"", "\"\"")}\""

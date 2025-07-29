@@ -5,11 +5,13 @@ defmodule EhsEnforcementWeb.CaseLive.Form do
 
   @impl true
   def mount(_params, _session, socket) do
-    changeset = Enforcement.change_case(%{})
+    # For new case forms, create an AshPhoenix.Form for creation
+    form = AshPhoenix.Form.for_create(EhsEnforcement.Enforcement.Case, :create, forms: [auto?: false]) |> to_form()
     
     {:ok,
      socket
-     |> assign(:changeset, changeset)
+     |> assign(:form, form)
+     |> assign(:case, nil)  # Explicitly set case to nil for new cases
      |> assign(:agencies, Enforcement.list_agencies!())
      |> assign(:existing_offenders, [])
      |> assign(:selected_offender, nil)
@@ -24,11 +26,11 @@ defmodule EhsEnforcementWeb.CaseLive.Form do
     # Edit mode
     try do
       case_record = Enforcement.get_case!(id, load: [:offender, :agency])
-      changeset = Enforcement.change_case(case_record)
+      form = AshPhoenix.Form.for_update(case_record, :update, forms: [auto?: false]) |> to_form()
       
       {:noreply,
        socket
-       |> assign(:changeset, changeset)
+       |> assign(:form, form)
        |> assign(:case, case_record)
        |> assign(:selected_offender, case_record.offender)
        |> assign(:page_title, "Edit Case #{case_record.regulator_id}")}
@@ -50,17 +52,30 @@ defmodule EhsEnforcementWeb.CaseLive.Form do
 
   @impl true
   def handle_event("validate", %{"case" => case_params}, socket) do
-    changeset = 
-      socket.assigns.changeset.data
-      |> Enforcement.change_case(case_params)
-      |> Map.put(:action, :validate)
-
-    {:noreply, assign(socket, :changeset, changeset)}
+    form = AshPhoenix.Form.validate(socket.assigns.form, case_params) |> to_form()
+    {:noreply, assign(socket, :form, form)}
   end
 
   @impl true
   def handle_event("save", %{"case" => case_params}, socket) do
-    save_case(socket, socket.assigns[:case], case_params)
+    case AshPhoenix.Form.submit(socket.assigns.form, params: case_params) do
+      {:ok, case_record} ->
+        # Broadcast case creation/update
+        if socket.assigns[:case] do
+          Phoenix.PubSub.broadcast(EhsEnforcement.PubSub, "case_updates", {:case_updated, case_record})
+          Phoenix.PubSub.broadcast(EhsEnforcement.PubSub, "case:#{case_record.id}", {:case_updated, case_record})
+        else
+          Phoenix.PubSub.broadcast(EhsEnforcement.PubSub, "case_updates", {:case_created, case_record})
+        end
+        
+        {:noreply,
+         socket
+         |> put_flash(:info, if(socket.assigns[:case], do: "Case updated successfully", else: "Case created successfully"))
+         |> push_navigate(to: ~p"/cases/#{case_record.id}")}
+      
+      {:error, form} ->
+        {:noreply, assign(socket, :form, to_form(form))}
+    end
   end
 
   @impl true
@@ -113,11 +128,12 @@ defmodule EhsEnforcementWeb.CaseLive.Form do
 
   @impl true
   def handle_event("reset_form", _params, socket) do
-    changeset = Enforcement.change_case(%{})
+    # Reset to a new create form
+    form = AshPhoenix.Form.for_create(EhsEnforcement.Enforcement.Case, :create, forms: [auto?: false]) |> to_form()
     
     {:noreply,
      socket
-     |> assign(:changeset, changeset)
+     |> assign(:form, form)
      |> assign(:selected_offender, nil)
      |> assign(:offender_mode, :select)
      |> assign(:offender_search_results, [])

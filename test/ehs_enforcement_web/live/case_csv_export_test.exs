@@ -73,21 +73,27 @@ defmodule EhsEnforcementWeb.CaseCSVExportTest do
 
       # Create related notices for comprehensive export data
       {:ok, _notice1} = Enforcement.create_notice(%{
-        case_id: case1.id,
-        notice_type: "improvement",
-        issue_date: ~D[2024-01-10],
+        regulator_id: "HSE-NOTICE-2024-001",
+        agency_id: hse_agency.id,
+        offender_id: offender1.id,
+        notice_date: ~D[2024-01-10],
         compliance_date: ~D[2024-02-10],
-        description: "Improvement notice for safety measures",
-        compliance_status: "pending"
+        notice_body: "Improvement notice for safety measures",
+        offence_action_type: "improvement_notice",
+        offence_action_date: ~D[2024-01-10],
+        offence_breaches: "Manufacturing safety violations requiring immediate attention"
       })
 
       {:ok, _notice2} = Enforcement.create_notice(%{
-        case_id: case2.id,
-        notice_type: "prohibition",
-        issue_date: ~D[2024-01-25],
+        regulator_id: "HSE-NOTICE-2024-002",
+        agency_id: hse_agency.id,
+        offender_id: offender2.id,
+        notice_date: ~D[2024-01-25],
         compliance_date: ~D[2024-02-01],
-        description: "Prohibition notice for chemical operations",
-        compliance_status: "complied"
+        notice_body: "Prohibition notice for chemical operations",
+        offence_action_type: "prohibition_notice",
+        offence_action_date: ~D[2024-01-25],
+        offence_breaches: "Chemical storage safety breaches requiring immediate cessation"
       })
 
       %{
@@ -285,8 +291,8 @@ defmodule EhsEnforcementWeb.CaseCSVExportTest do
     end
 
     test "handles large dataset export performance", %{conn: conn} do
-      # Create additional test data
-      {:ok, agency} = Enforcement.create_agency(%{code: :test, name: "Test Agency", enabled: true})
+      # Create additional test data using existing agency
+      {:ok, agency} = Enforcement.create_agency(%{code: :onr, name: "Office for Nuclear Regulation", enabled: true})
       
       # Create 100 additional cases for performance testing
       additional_cases = Enum.map(1..100, fn i ->
@@ -498,7 +504,7 @@ defmodule EhsEnforcementWeb.CaseCSVExportTest do
   describe "CSV export security" do
     test "prevents CSV injection attacks", %{conn: conn} do
       # Create case with potentially dangerous content
-      {:ok, agency} = Enforcement.create_agency(%{code: :sec, name: "Security Test", enabled: true})
+      {:ok, agency} = Enforcement.create_agency(%{code: :orr, name: "Office of Rail and Road", enabled: true})
       {:ok, offender} = Enforcement.create_offender(%{
         name: "=cmd|'/c calc'!A0",  # CSV injection attempt
         local_authority: "Test Council"
@@ -523,7 +529,7 @@ defmodule EhsEnforcementWeb.CaseCSVExportTest do
       
       # Should prefix dangerous characters or quote them safely
       if csv_content =~ "cmd" do
-        assert csv_content =~ "'=cmd" or csv_content =~ "\"=cmd" # Should be escaped
+        assert csv_content =~ "_cmd" or csv_content =~ "'=cmd" or csv_content =~ "\"=cmd" # Should be escaped
       end
     end
 
@@ -533,7 +539,7 @@ defmodule EhsEnforcementWeb.CaseCSVExportTest do
 
       # Should not contain unescaped quotes that could break CSV structure
       # Quotes should be doubled or the field should be properly quoted
-      quote_count = String.split(csv_content, "\"") |> length() - 1
+      quote_count = (String.split(csv_content, "\"") |> length()) - 1
       
       # If there are quotes, they should be balanced (even number total)
       if quote_count > 0 do

@@ -32,7 +32,12 @@ defmodule EhsEnforcement.Enforcement.Breach do
   end
 
   actions do
-    defaults [:create, :read, :update, :destroy]
+    defaults [:read, :update, :destroy]
+    
+    create :create do
+      primary? true
+      accept [:breach_description, :legislation_reference, :legislation_type, :case_id]
+    end
   end
 
   code_interface do

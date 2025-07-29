@@ -1,5 +1,7 @@
 defmodule EhsEnforcementWeb.CaseLive.Index do
   use EhsEnforcementWeb, :live_view
+  
+  require Ash.Query
 
   alias EhsEnforcement.Enforcement
   # alias EhsEnforcementWeb.Components.CaseFilter  # Unused alias removed
@@ -223,13 +225,21 @@ defmodule EhsEnforcementWeb.CaseLive.Index do
         end
       
       {:search, query}, acc when is_binary(query) and query != "" ->
-        # Build OR condition for searching across multiple fields
-        search_conditions = [
-          [offender: [name: [ilike: "%#{query}%"]]],
-          [regulator_id: [ilike: "%#{query}%"]],
-          [offence_breaches: [ilike: "%#{query}%"]]
-        ]
-        [{:or, search_conditions} | acc]
+        # Implement search across multiple fields
+        # Search in: offender name, case regulator_id, and offence_breaches
+        trimmed_query = String.trim(query)
+        
+        # Limit search term length to prevent database issues
+        limited_query = if String.length(trimmed_query) > 100 do
+          String.slice(trimmed_query, 0, 100)
+        else
+          trimmed_query
+        end
+        
+        search_pattern = "%#{limited_query}%"
+        
+        # Pass search pattern to Enforcement context
+        [{:search, search_pattern} | acc]
       
       _, acc -> acc
     end)

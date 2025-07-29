@@ -54,7 +54,7 @@
               Cancel
             </button>
             
-            <%= if not assigns[:case] do %>
+            <%= if is_nil(@case) do %>
               <button
                 phx-click="reset_form"
                 class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -72,7 +72,7 @@
   <!-- Main Content -->
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <.form
-      for={@changeset}
+      for={@form}
       phx-submit="save"
       phx-change="validate"
       class="space-y-6"
@@ -86,7 +86,7 @@
             <!-- Regulator ID -->
             <div class="sm:col-span-1">
               <.input
-                field={@changeset[:regulator_id]}
+                field={@form[:regulator_id]}
                 type="text"
                 label="Case ID"
                 placeholder="e.g., HSE-2024-001"
@@ -97,7 +97,7 @@
             <!-- Agency -->
             <div class="sm:col-span-1">
               <.input
-                field={@changeset[:agency_id]}
+                field={@form[:agency_id]}
                 type="select"
                 label="Agency"
                 options={Enum.map(@agencies, &{&1.name, &1.id})}
@@ -109,7 +109,7 @@
             <!-- Offense Date -->
             <div class="sm:col-span-1">
               <.input
-                field={@changeset[:offence_action_date]}
+                field={@form[:offence_action_date]}
                 type="date"
                 label="Offense Date"
                 required
@@ -119,7 +119,7 @@
             <!-- Fine Amount -->
             <div class="sm:col-span-1">
               <.input
-                field={@changeset[:offence_fine]}
+                field={@form[:offence_fine]}
                 type="number"
                 label="Fine Amount (£)"
                 step="0.01"
@@ -132,7 +132,7 @@
             <!-- Offense Details -->
             <div class="sm:col-span-2">
               <.input
-                field={@changeset[:offence_breaches]}
+                field={@form[:offence_breaches]}
                 type="textarea"
                 label="Offense Details"
                 placeholder="Describe the safety violations and breaches..."
@@ -184,7 +184,7 @@
                     id="offender-search"
                     type="text"
                     phx-keyup="search_offenders"
-                    phx-value-query={Phoenix.HTML.Form.input_value(@changeset, :offender_search)}
+                    phx-value-query={Phoenix.HTML.Form.input_value(@form, :offender_search)}
                     placeholder="Type company name to search..."
                     class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />

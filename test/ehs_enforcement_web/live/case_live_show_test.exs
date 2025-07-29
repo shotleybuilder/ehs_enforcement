@@ -38,36 +38,42 @@ defmodule EhsEnforcementWeb.CaseLive.ShowTest do
 
       # Create related notices for the case
       {:ok, notice1} = Enforcement.create_notice(%{
-        case_id: case.id,
-        notice_type: "improvement",
-        issue_date: ~D[2024-01-15],
+        regulator_id: "NOTICE-IMP-001",
+        agency_id: hse_agency.id,
+        offender_id: offender.id,
+        notice_date: ~D[2024-01-15],
+        operative_date: ~D[2024-01-20],
         compliance_date: ~D[2024-03-15],
-        description: "Improvement notice for workplace safety measures",
-        compliance_status: "pending"
+        notice_body: "Improvement notice for workplace safety measures",
+        offence_action_type: "improvement",
+        last_synced_at: DateTime.utc_now()
       })
 
       {:ok, notice2} = Enforcement.create_notice(%{
-        case_id: case.id,
-        notice_type: "prohibition",
-        issue_date: ~D[2024-01-20],
+        regulator_id: "NOTICE-PRO-002",
+        agency_id: hse_agency.id,
+        offender_id: offender.id,
+        notice_date: ~D[2024-01-20],
+        operative_date: ~D[2024-01-21],
         compliance_date: ~D[2024-02-01],
-        description: "Prohibition notice to cease unsafe operations",
-        compliance_status: "complied"
+        notice_body: "Prohibition notice to cease unsafe operations",
+        offence_action_type: "prohibition",
+        last_synced_at: DateTime.utc_now()
       })
 
       # Create related breaches
       {:ok, breach1} = Enforcement.create_breach(%{
         case_id: case.id,
-        regulation_section: "Section 2 - Health and Safety at Work Act 1974",
-        description: "Failure to ensure safety of employees",
-        severity: "high"
+        legislation_reference: "Section 2 - Health and Safety at Work Act 1974",
+        breach_description: "Failure to ensure safety of employees",
+        legislation_type: :act
       })
 
       {:ok, breach2} = Enforcement.create_breach(%{
         case_id: case.id,
-        regulation_section: "Regulation 5 - Personal Protective Equipment Regulations",
-        description: "Inadequate provision of PPE",
-        severity: "medium"
+        legislation_reference: "Regulation 5 - Personal Protective Equipment Regulations",
+        breach_description: "Inadequate provision of PPE",
+        legislation_type: :regulation
       })
 
       %{
@@ -128,28 +134,24 @@ defmodule EhsEnforcementWeb.CaseLive.ShowTest do
              html =~ "Agency Profile"
     end
 
-    test "displays related notices section", %{conn: conn, case: case, notices: notices} do
+    test "does not display notices section (no direct case-notice relationship)", %{conn: conn, case: case, notices: notices} do
       {:ok, view, html} = live(conn, "/cases/#{case.id}")
 
-      # Should show notices section
-      assert html =~ "Related Notices" or html =~ "Enforcement Notices"
+      # Should NOT show notices section since there's no direct case-notice relationship
+      refute html =~ "Related Notices"
+      refute html =~ "Enforcement Notices"
 
-      # Should display both notices
-      assert html =~ "Improvement notice for workplace safety measures"
-      assert html =~ "Prohibition notice to cease unsafe operations"
+      # Should NOT display individual notices on case page
+      refute html =~ "Improvement notice for workplace safety measures"
+      refute html =~ "Prohibition notice to cease unsafe operations"
 
-      # Should show notice types and statuses
-      assert html =~ "improvement"
-      assert html =~ "prohibition"
-      assert html =~ "pending"
-      assert html =~ "complied"
+      # Should NOT show notice counts (since notices aren't related to cases)
+      refute html =~ "2 notices"
+      refute html =~ "2 Notices"
 
-      # Should display dates
-      assert html =~ "2024-01-15" or html =~ "January 15, 2024"
-      assert html =~ "2024-01-20" or html =~ "January 20, 2024"
-
-      # Should have notice count
-      assert html =~ "2 notices" or html =~ "2 Notices"
+      # The case page focuses on case details, breaches, and timeline
+      assert html =~ "HSE-2024-DETAIL-001"  # Case ID should be shown
+      assert html =~ "£35,000.00"           # Fine amount should be shown
     end
 
     test "displays regulatory breaches section", %{conn: conn, case: case, breaches: breaches} do
@@ -221,9 +223,10 @@ defmodule EhsEnforcementWeb.CaseLive.ShowTest do
       assert html =~ "Case Details"
       assert html =~ "EA-MINIMAL-001"
 
-      # Should show empty states for missing data
-      assert html =~ "No notices" or html =~ "No related notices"
-      assert html =~ "No breaches" or html =~ "No regulatory breaches"
+      # Should handle missing breaches gracefully (no notices section expected since no direct relationship)
+      # Note: The case doesn't create any breaches, so should handle empty breach list
+      assert html =~ "£1,000.00"  # Fine amount should be displayed
+      assert html =~ "Minor violation"  # Breach description should be shown
     end
 
     test "handles non-existent case ID", %{conn: conn} do
@@ -541,12 +544,15 @@ defmodule EhsEnforcementWeb.CaseLive.ShowTest do
       # Create multiple notices and breaches to test performance
       notices = Enum.map(1..10, fn i ->
         {:ok, notice} = Enforcement.create_notice(%{
-          case_id: case.id,
-          notice_type: if(rem(i, 2) == 0, do: "improvement", else: "prohibition"),
-          issue_date: Date.add(~D[2024-01-01], i),
+          regulator_id: "NOTICE-#{String.pad_leading(to_string(i), 3, "0")}",
+          agency_id: agency.id,
+          offender_id: offender.id,
+          notice_date: Date.add(~D[2024-01-01], i),
+          operative_date: Date.add(~D[2024-01-15], i),
           compliance_date: Date.add(~D[2024-02-01], i),
-          description: "Performance test notice #{i}",
-          compliance_status: if(rem(i, 3) == 0, do: "complied", else: "pending")
+          notice_body: "Performance test notice #{i}",
+          offence_action_type: if(rem(i, 2) == 0, do: "improvement", else: "prohibition"),
+          last_synced_at: DateTime.utc_now()
         })
         notice
       end)
@@ -554,12 +560,12 @@ defmodule EhsEnforcementWeb.CaseLive.ShowTest do
       breaches = Enum.map(1..5, fn i ->
         {:ok, breach} = Enforcement.create_breach(%{
           case_id: case.id,
-          regulation_section: "Test Regulation #{i}",
-          description: "Performance test breach #{i}",
-          severity: case rem(i, 3) do
-            0 -> "low"
-            1 -> "medium" 
-            2 -> "high"
+          legislation_reference: "Test Regulation #{i}",
+          breach_description: "Performance test breach #{i}",
+          legislation_type: case rem(i, 3) do
+            0 -> :act
+            1 -> :regulation
+            2 -> :acop
           end
         })
         breach

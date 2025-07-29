@@ -19,7 +19,7 @@ defmodule EhsEnforcementWeb.CaseLive.Show do
   def handle_params(%{"id" => id}, _url, socket) do
     try do
       # Load case with all related data
-      case = Enforcement.get_case!(id, load: [:offender, :agency])
+      case = Enforcement.get_case!(id, load: [:offender, :agency, :breaches])
       
       # Subscribe to updates for this specific case
       Phoenix.PubSub.subscribe(EhsEnforcement.PubSub, "case:#{id}")
@@ -159,37 +159,8 @@ defmodule EhsEnforcementWeb.CaseLive.Show do
     end
   end
 
-  @impl true
-  def handle_info({:notice_created, notice}, socket) do
-    if socket.assigns.case && socket.assigns.case.id == notice.case_id do
-      # Reload case to get updated notices
-      try do
-        refreshed_case = Enforcement.get_case!(socket.assigns.case.id, load: [:offender, :agency])
-        {:noreply, assign(socket, :case, refreshed_case)}
-      rescue
-        _ ->
-          {:noreply, socket}
-      end
-    else
-      {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_info({:notice_updated, notice}, socket) do
-    if socket.assigns.case && socket.assigns.case.id == notice.case_id do
-      # Reload case to get updated notices
-      try do
-        refreshed_case = Enforcement.get_case!(socket.assigns.case.id, load: [:offender, :agency])
-        {:noreply, assign(socket, :case, refreshed_case)}
-      rescue
-        _ ->
-          {:noreply, socket}
-      end
-    else
-      {:noreply, socket}
-    end
-  end
+  # Notice handlers removed - there is no direct case-notice relationship
+  # Notices belong to agency and offender, not directly to cases
 
   @impl true
   def handle_info(_, socket) do
@@ -222,7 +193,7 @@ defmodule EhsEnforcementWeb.CaseLive.Show do
       format_date(case_record.offence_action_date),
       format_currency_for_csv(case_record.offence_fine),
       escape_csv_field(case_record.offence_breaches || ""),
-      length(case_record.notices || []),
+      0, # notice count (no direct case-notice relationship)
       length(case_record.breaches || []),
       format_datetime(case_record.last_synced_at)
     ]
@@ -349,22 +320,36 @@ defmodule EhsEnforcementWeb.CaseLive.Show do
       icon: "gavel"
     } | events]
     
-    # Add notice events
-    notice_events = (case_record.notices || [])
-    |> Enum.map(fn notice ->
+    # Add hearing date event if present
+    events = if case_record.offence_hearing_date do
+      [%{
+        type: :hearing_scheduled,
+        date: case_record.offence_hearing_date,
+        title: "Court Hearing",
+        description: "Hearing scheduled for #{case_record.regulator_id}",
+        icon: "calendar"
+      } | events]
+    else
+      events
+    end
+    
+    # Add breach events from loaded breaches
+    breach_events = (case_record.breaches || [])
+    |> Enum.map(fn breach ->
       %{
-        type: :notice_issued,
-        date: notice.issue_date,
-        title: format_notice_type(notice.notice_type),
-        description: notice.description,
-        icon: "document-text",
-        status: notice.compliance_status
+        type: :breach_identified,
+        date: case_record.offence_action_date, # Use case date as breach discovery date
+        title: "Breach Identified",
+        description: breach.breach_description,
+        icon: "exclamation-triangle"
       }
     end)
     
-    events = events ++ notice_events
+    events = events ++ breach_events
     
-    # Sort by date descending
-    Enum.sort_by(events, & &1.date, {:desc, Date})
+    # Sort by date descending (handle nil dates)
+    Enum.sort_by(events, fn event -> 
+      event.date || ~D[1900-01-01]
+    end, {:desc, Date})
   end
 end

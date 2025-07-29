@@ -23,6 +23,9 @@ defmodule EhsEnforcementWeb.Router do
     
     # Case Management Routes
     live "/cases", CaseLive.Index, :index
+    get "/cases/export.csv", CaseController, :export_csv
+    get "/cases/export.xlsx", CaseController, :export_excel
+    get "/cases/export_detailed.csv", CaseController, :export_detailed_csv
     live "/cases/new", CaseLive.Form, :new
     live "/cases/:id", CaseLive.Show, :show
     live "/cases/:id/edit", CaseLive.Form, :edit
