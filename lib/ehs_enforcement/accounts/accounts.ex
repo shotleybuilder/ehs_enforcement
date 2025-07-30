@@ -8,5 +8,6 @@ defmodule EhsEnforcement.Accounts do
   resources do
     resource EhsEnforcement.Accounts.User
     resource EhsEnforcement.Accounts.Token
+    resource EhsEnforcement.Accounts.UserIdentity
   end
 end

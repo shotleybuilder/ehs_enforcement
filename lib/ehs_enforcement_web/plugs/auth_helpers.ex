@@ -6,25 +6,25 @@ defmodule EhsEnforcementWeb.Plugs.AuthHelpers do
   import Plug.Conn
   import Phoenix.Controller
   
-  alias EhsEnforcement.Accounts.User
+  def init(opts), do: opts
   
-  def load_from_session(conn, _opts) do
-    case AshAuthentication.Phoenix.Plug.retrieve_from_session(conn, otp_app: :ehs_enforcement) do
-      {conn, nil} -> 
-        assign(conn, :current_user, nil)
-      {conn, user} -> 
+  def call(conn, :load_current_user), do: load_current_user(conn, [])
+  def call(conn, :require_authenticated_user), do: require_authenticated_user(conn, [])  
+  def call(conn, :require_admin_user), do: require_admin_user(conn, [])
+  def call(conn, opts), do: load_current_user(conn, opts)
+  
+  def load_current_user(conn, _opts) do
+    # retrieve_from_session loads users and stores them in assigns with current_ prefix
+    conn = AshAuthentication.Plug.Helpers.retrieve_from_session(conn, :ehs_enforcement)
+    
+    # The user should now be in conn.assigns.current_user
+    case conn.assigns[:current_user] do
+      nil ->
         conn
-        |> assign(:current_user, user)
+      user ->
+        conn
         |> maybe_refresh_admin_status(user)
-    end
-  end
-  
-  def load_from_bearer(conn, _opts) do
-    case AshAuthentication.Phoenix.Plug.retrieve_from_bearer(conn, otp_app: :ehs_enforcement) do
-      {conn, nil} -> 
-        assign(conn, :current_user, nil)
-      {conn, user} -> 
-        assign(conn, :current_user, user)
+        |> AshAuthentication.Plug.Helpers.set_actor(:user)
     end
   end
   

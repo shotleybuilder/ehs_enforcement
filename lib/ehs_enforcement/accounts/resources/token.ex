@@ -10,7 +10,7 @@ defmodule EhsEnforcement.Accounts.Token do
     extensions: [AshAuthentication.TokenResource]
   
   postgres do
-    table "user_tokens"
+    table "tokens"
     repo EhsEnforcement.Repo
   end
   

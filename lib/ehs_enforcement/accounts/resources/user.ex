@@ -17,91 +17,88 @@ defmodule EhsEnforcement.Accounts.User do
   attributes do
     uuid_primary_key :id
     
+    # Core authentication fields (following Ash Authentication patterns)
+    attribute :email, :ci_string, allow_nil?: false, public?: true
+    
     # GitHub OAuth fields
-    attribute :github_id, :string, allow_nil?: false
-    attribute :github_login, :string, allow_nil?: false
-    attribute :email, :ci_string, allow_nil?: true
+    attribute :github_id, :string, allow_nil?: true
+    attribute :github_login, :string, allow_nil?: true  
     attribute :name, :string, allow_nil?: true
     attribute :avatar_url, :string, allow_nil?: true
     attribute :github_url, :string, allow_nil?: true
     
-    # Admin privilege management
-    attribute :is_admin, :boolean, default: false
+    # Admin privilege management for EHS Enforcement
+    attribute :is_admin, :boolean, default: false, public?: true
     attribute :admin_checked_at, :utc_datetime_usec, allow_nil?: true
     attribute :last_login_at, :utc_datetime_usec, allow_nil?: true
     
-    create_timestamp :inserted_at
-    update_timestamp :updated_at
+    # OAuth provider tracking
+    attribute :primary_provider, :string, default: "github", public?: true
+    
+    timestamps()
   end
   
   authentication do
     strategies do
       oauth2 :github do
-        client_id fn _, _ -> get_oauth_config(:client_id) end
-        client_secret fn _, _ -> get_oauth_config(:client_secret) end
-        redirect_uri fn _, _ -> get_oauth_config(:redirect_uri) end
+        client_id fn _, _ -> {:ok, System.get_env("GITHUB_CLIENT_ID", "")} end
+        client_secret fn _, _ -> {:ok, System.get_env("GITHUB_CLIENT_SECRET", "")} end
+        redirect_uri fn _, _ -> {:ok, System.get_env("GITHUB_REDIRECT_URI", "http://localhost:4002/auth/github/callback")} end
         base_url "https://github.com"
-        authorize_url "https://github.com/login/oauth/authorize"
-        token_url "https://github.com/login/oauth/access_token"
+        authorize_url "/login/oauth/authorize"
+        token_url "/login/oauth/access_token"  
         user_url "https://api.github.com/user"
-        authorization_params scope: "read:user,user:email"
-        auth_method :client_secret_post
-        
-        identity_resource EhsEnforcement.Accounts.User
-        identity_relationship_name :user
-        identity_relationship_user_id_attribute :github_id
+        authorization_params [scope: "user:email,read:org"]
+        identity_resource EhsEnforcement.Accounts.UserIdentity
       end
     end
     
     tokens do
       enabled? true
-      require_token_presence_for_authentication? true
       token_resource EhsEnforcement.Accounts.Token
-      signing_secret fn _, _ -> get_token_signing_secret() end
+      signing_secret fn _, _ ->
+        Application.fetch_env(:ehs_enforcement, :token_signing_secret)
+      end
     end
-    
+
+    session_identifier :jti
   end
   
   identities do
-    identity :unique_github_id, [:github_id]
-    identity :unique_github_login, [:github_login]
+    identity :unique_email, [:email]
   end
   
   actions do
-    defaults [:read, :destroy]
+    defaults [:read]
     
-    create :create do
-      primary? true
-      accept [:github_id, :github_login, :email, :name, :avatar_url, :github_url]
+    update :update do
+      accept [:email, :name, :avatar_url, :github_url, :last_login_at]
     end
     
     create :register_with_github do
-      upsert? true
-      upsert_identity :unique_github_id
       argument :user_info, :map, allow_nil?: false
       argument :oauth_tokens, :map, allow_nil?: false
-      accept [:github_id, :github_login, :email, :name, :avatar_url, :github_url]
       
+      upsert? true
+      upsert_identity :unique_email
+      upsert_fields [:name, :avatar_url, :github_id, :github_login, :github_url, :primary_provider, :last_login_at]
+      
+      change AshAuthentication.Strategy.OAuth2.IdentityChange
       change AshAuthentication.GenerateTokenChange
-      change {AshAuthentication.Strategy.OAuth2.IdentityChange, strategy: :github}
       
       change fn changeset, _context ->
         user_info = Ash.Changeset.get_argument(changeset, :user_info)
         
         changeset
+        |> Ash.Changeset.change_attribute(:email, downcase_email(user_info["email"]))
         |> Ash.Changeset.change_attribute(:github_id, to_string(user_info["id"]))
         |> Ash.Changeset.change_attribute(:github_login, user_info["login"])
-        |> Ash.Changeset.change_attribute(:email, user_info["email"])
         |> Ash.Changeset.change_attribute(:name, user_info["name"])
         |> Ash.Changeset.change_attribute(:avatar_url, user_info["avatar_url"])
         |> Ash.Changeset.change_attribute(:github_url, user_info["html_url"])
+        |> Ash.Changeset.change_attribute(:primary_provider, "github")
         |> Ash.Changeset.change_attribute(:last_login_at, DateTime.utc_now())
       end
-    end
-    
-    update :update do
-      primary? true
-      accept [:email, :name, :avatar_url, :github_url, :last_login_at]
     end
     
     update :update_admin_status do
@@ -129,20 +126,20 @@ defmodule EhsEnforcement.Accounts.User do
   end
   
   policies do
-    # Default policy - users can read their own data
-    policy always() do
+    # Allow all read actions for authentication
+    policy action_type(:read) do
       authorize_if always()
     end
     
-    # Admin users can read all user data
-    policy action_type(:read) do
-      authorize_if actor_attribute_equals(:is_admin, true)
+    # Allow GitHub OAuth registration for anyone
+    policy action(:register_with_github) do
+      authorize_if always()
     end
     
-    # Users can update their own non-admin fields
+    # Users can update their own data
     policy action_type(:update) do
       authorize_if expr(id == ^actor(:id))
-      forbid_if changing_attributes([:is_admin, :admin_checked_at])
+      authorize_if actor_attribute_equals(:is_admin, true)
     end
     
     # Only system can update admin status
@@ -156,8 +153,9 @@ defmodule EhsEnforcement.Accounts.User do
     end
   end
   
-  aggregates do
-    count :login_count, [], filter: expr(not is_nil(last_login_at))
+  # Relationships
+  relationships do
+    has_many :user_identities, EhsEnforcement.Accounts.UserIdentity
   end
   
   calculations do
@@ -169,13 +167,13 @@ defmodule EhsEnforcement.Accounts.User do
     calculate :display_name, :string, expr(
       cond do
         not is_nil(name) -> name
-        true -> github_login
+        not is_nil(github_login) -> github_login
+        true -> email
       end
     )
   end
   
   code_interface do
-    define :create, args: [:github_id, :github_login]
     define :update
     define :update_admin_status, args: [:is_admin]
     define :by_github_id, args: [:github_id]
@@ -183,14 +181,7 @@ defmodule EhsEnforcement.Accounts.User do
     define :admins
   end
   
-  # Configuration helper functions
-  
-  defp get_oauth_config(:client_id), do: Application.get_env(:ehs_enforcement, :github_oauth)[:client_id]
-  defp get_oauth_config(:client_secret), do: Application.get_env(:ehs_enforcement, :github_oauth)[:client_secret]
-  defp get_oauth_config(:redirect_uri), do: Application.get_env(:ehs_enforcement, :github_oauth)[:redirect_uri]
-  
-  defp get_token_signing_secret do
-    Application.get_env(:ehs_enforcement, :token_signing_secret) || 
-      raise "TOKEN_SIGNING_SECRET environment variable is required"
-  end
+  # Helper functions
+  defp downcase_email(nil), do: nil
+  defp downcase_email(email) when is_binary(email), do: String.downcase(email)
 end
