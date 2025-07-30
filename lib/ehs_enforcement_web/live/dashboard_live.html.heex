@@ -165,38 +165,10 @@
       <.notices_action_card current_user={@current_user} />
 
       <!-- Offenders Database Card -->
-      <.dashboard_action_card title="OFFENDER DATABASE" icon="👥" theme="purple">
-        <:metrics>
-          <.metric_item label="Total Organizations" value="245" />
-          <.metric_item label="Repeat Offenders" value="12 (5%)" />
-          <.metric_item label="Average Fine" value="£2.3M" />
-        </:metrics>
-        <:actions>
-          <.card_action_button phx-click="browse_top_offenders">
-            > Browse Top 50
-          </.card_action_button>
-          <.card_secondary_button phx-click="search_offenders">
-            > Search Offenders
-          </.card_secondary_button>
-        </:actions>
-      </.dashboard_action_card>
+      <.offenders_action_card />
 
       <!-- Reports & Analytics Card -->
-      <.dashboard_action_card title="REPORTS & ANALYTICS" icon="📊" theme="green">
-        <:metrics>
-          <.metric_item label="Saved Reports" value="5" />
-          <.metric_item label="Last Export" value="2 days ago" />
-          <.metric_item label="Data Available" value="1.2MB" />
-        </:metrics>
-        <:actions>
-          <.card_action_button phx-click="generate_report">
-            > Generate Report
-          </.card_action_button>
-          <.card_secondary_button phx-click="export_data" phx-value-format="csv">
-            > Export Data
-          </.card_secondary_button>
-        </:actions>
-      </.dashboard_action_card>
+      <.reports_action_card />
     </.dashboard_card_grid>
 
     <!-- Summary Statistics -->

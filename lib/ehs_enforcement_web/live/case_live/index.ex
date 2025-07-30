@@ -24,6 +24,7 @@ defmodule EhsEnforcementWeb.CaseLive.Index do
      |> assign(:page_size, @default_page_size)
      |> assign(:total_cases, 0)
      |> assign(:loading, true)
+     |> assign(:search_active, false)
      |> load_cases(), temporary_assigns: [cases: []]}
   end
 
@@ -31,9 +32,26 @@ defmodule EhsEnforcementWeb.CaseLive.Index do
   def handle_params(params, _url, socket) do
     page = String.to_integer(params["page"] || "1")
     
+    # Handle filter parameters from dashboard navigation
+    filters = case params["filter"] do
+      "recent" ->
+        thirty_days_ago = Date.add(Date.utc_today(), -30)
+        %{date_from: Date.to_iso8601(thirty_days_ago)}
+      "search" ->
+        # Show advanced search interface activated
+        socket.assigns.filters
+      _ ->
+        socket.assigns.filters
+    end
+    
+    # Handle search activation from dashboard
+    search_active = params["filter"] == "search"
+    
     {:noreply, 
      socket
      |> assign(:page, max(1, page))
+     |> assign(:filters, filters)
+     |> assign(:search_active, search_active)
      |> load_cases()}
   end
 

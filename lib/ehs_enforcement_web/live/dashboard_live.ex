@@ -8,6 +8,8 @@ defmodule EhsEnforcementWeb.DashboardLive do
   
   import EhsEnforcementWeb.Components.CasesActionCard
   import EhsEnforcementWeb.Components.NoticesActionCard
+  import EhsEnforcementWeb.Components.OffendersActionCard
+  import EhsEnforcementWeb.Components.ReportsActionCard
 
   @default_recent_activity_page_size 10
 
@@ -249,6 +251,26 @@ defmodule EhsEnforcementWeb.DashboardLive do
   @impl true
   def handle_event("navigate_to_new_notice", _params, socket) do
     {:noreply, push_navigate(socket, to: "/notices/new")}
+  end
+
+  @impl true
+  def handle_event("browse_top_offenders", _params, socket) do
+    {:noreply, push_navigate(socket, to: "/offenders?filter=top50&page=1")}
+  end
+
+  @impl true
+  def handle_event("search_offenders", _params, socket) do
+    {:noreply, push_navigate(socket, to: "/offenders?filter=search")}
+  end
+
+  @impl true
+  def handle_event("generate_report", _params, socket) do
+    {:noreply, push_navigate(socket, to: "/reports")}
+  end
+
+  @impl true
+  def handle_event("export_data", _params, socket) do
+    {:noreply, push_navigate(socket, to: "/reports")}
   end
 
   @impl true
