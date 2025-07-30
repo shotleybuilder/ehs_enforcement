@@ -106,3 +106,4 @@ hse_enforcement_data.ex
 # Claude code sessions
 /sessions
 /claude-sessions
+.claude/sessions
