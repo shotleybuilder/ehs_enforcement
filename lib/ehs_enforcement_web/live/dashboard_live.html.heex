@@ -33,111 +33,86 @@
       </div>
     </div>
 
-    <!-- Statistics Overview -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5 mb-8">
-      <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-indigo-500 rounded-md flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                </svg>
-              </div>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Active Agencies</dt>
-                <dd class="text-lg font-medium text-gray-900"><%= @stats.active_agencies %> Agencies</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- Dashboard Action Cards -->
+    <.dashboard_card_grid>
+      <!-- Cases Management Card -->
+      <.dashboard_action_card title="ENFORCEMENT CASES" icon="📁" theme="blue">
+        <:metrics>
+          <.metric_item label="Total Cases" value={to_string(@stats.total_cases)} />
+          <.metric_item label="Recent Cases" value={to_string(@stats.recent_cases)} sublabel="Last 30 Days" />
+          <.metric_item label="Total Fines" value={"£#{Decimal.to_string(@stats.total_fines, :normal)}"} />
+        </:metrics>
+        <:actions>
+          <.card_action_button phx-click="browse_recent_cases">
+            > Browse Recent
+          </.card_action_button>
+          <.card_secondary_button phx-click="search_cases">
+            > Search Cases
+          </.card_secondary_button>
+        </:actions>
+        <:admin_actions visible={false}>
+          <.card_secondary_button admin_only={true} disabled={true}>
+            [ADMIN] > Add New Case
+          </.card_secondary_button>
+        </:admin_actions>
+      </.dashboard_action_card>
 
-      <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-              </div>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Recent Cases</dt>
-                <dd class="text-lg font-medium text-gray-900"><%= @stats.recent_cases %> Cases</dd>
-                <dd class="text-xs text-gray-400"><%= @stats.timeframe %></dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Notices Management Card -->
+      <.dashboard_action_card title="ENFORCEMENT NOTICES" icon="🔔" theme="yellow">
+        <:metrics>
+          <.metric_item label="Total Notices" value={to_string(@stats.total_notices)} />
+          <.metric_item label="Recent Notices" value={to_string(@stats.recent_notices)} sublabel="Last 30 Days" />
+          <.metric_item label="Compliance Required" value="3" />
+        </:metrics>
+        <:actions>
+          <.card_action_button phx-click="browse_active_notices">
+            > Browse Active
+          </.card_action_button>
+          <.card_secondary_button phx-click="search_notices">
+            > Search Database
+          </.card_secondary_button>
+        </:actions>
+        <:admin_actions visible={false}>
+          <.card_secondary_button admin_only={true} disabled={true}>
+            [ADMIN] > Add New Notice
+          </.card_secondary_button>
+        </:admin_actions>
+      </.dashboard_action_card>
 
-      <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-              </div>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Recent Notices</dt>
-                <dd class="text-lg font-medium text-gray-900"><%= @stats.recent_notices %> Notices</dd>
-                <dd class="text-xs text-gray-400"><%= @stats.timeframe %></dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Offenders Database Card -->
+      <.dashboard_action_card title="OFFENDER DATABASE" icon="👥" theme="purple">
+        <:metrics>
+          <.metric_item label="Total Organizations" value="245" />
+          <.metric_item label="Repeat Offenders" value="12 (5%)" />
+          <.metric_item label="Average Fine" value="£2.3M" />
+        </:metrics>
+        <:actions>
+          <.card_action_button phx-click="browse_top_offenders">
+            > Browse Top 50
+          </.card_action_button>
+          <.card_secondary_button phx-click="search_offenders">
+            > Search Offenders
+          </.card_secondary_button>
+        </:actions>
+      </.dashboard_action_card>
 
-      <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                </svg>
-              </div>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Recent Fines</dt>
-                <dd class="text-lg font-medium text-gray-900">£<%= Decimal.to_string(@stats.total_fines, :normal) %></dd>
-                <dd class="text-xs text-gray-400"><%= @stats.timeframe %></dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                </svg>
-              </div>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Period</dt>
-                <dd class="text-lg font-medium text-gray-900"><%= String.capitalize(@stats.period) %></dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <!-- Reports & Analytics Card -->
+      <.dashboard_action_card title="REPORTS & ANALYTICS" icon="📊" theme="green">
+        <:metrics>
+          <.metric_item label="Saved Reports" value="5" />
+          <.metric_item label="Last Export" value="2 days ago" />
+          <.metric_item label="Data Available" value="1.2MB" />
+        </:metrics>
+        <:actions>
+          <.card_action_button phx-click="generate_report">
+            > Generate Report
+          </.card_action_button>
+          <.card_secondary_button phx-click="export_data" phx-value-format="csv">
+            > Export Data
+          </.card_secondary_button>
+        </:actions>
+      </.dashboard_action_card>
+    </.dashboard_card_grid>
 
     <!-- Summary Statistics -->
     <div class="bg-white overflow-hidden shadow rounded-lg mb-8">
