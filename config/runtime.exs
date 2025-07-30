@@ -38,6 +38,23 @@ if config_env() == :dev do
       port: String.to_integer(System.get_env("DB_PORT") || "5432"),
       database: System.get_env("DB_NAME") || "ehs_enforcement_dev"
   end
+  
+  # GitHub OAuth configuration
+  config :ehs_enforcement, :github_oauth,
+    client_id: System.get_env("GITHUB_CLIENT_ID"),
+    client_secret: System.get_env("GITHUB_CLIENT_SECRET"),
+    redirect_uri: System.get_env("GITHUB_REDIRECT_URI") || "http://localhost:4002/auth/user/github/callback"
+  
+  # GitHub admin configuration
+  config :ehs_enforcement, :github_admin,
+    owner: System.get_env("GITHUB_REPO_OWNER"),
+    repo: System.get_env("GITHUB_REPO_NAME"),
+    access_token: System.get_env("GITHUB_ACCESS_TOKEN"),
+    allowed_users: System.get_env("GITHUB_ALLOWED_USERS", "") |> String.split(",") |> Enum.map(&String.trim/1)
+  
+  # Token signing secret
+  config :ehs_enforcement, :token_signing_secret,
+    System.get_env("TOKEN_SIGNING_SECRET") || "dev-only-secret-change-in-production"
 end
 
 # ## Using releases
@@ -97,6 +114,23 @@ if config_env() == :prod do
       port: port
     ],
     secret_key_base: secret_key_base
+  
+  # GitHub OAuth configuration for production
+  config :ehs_enforcement, :github_oauth,
+    client_id: System.get_env("GITHUB_CLIENT_ID") || raise("GITHUB_CLIENT_ID environment variable is missing"),
+    client_secret: System.get_env("GITHUB_CLIENT_SECRET") || raise("GITHUB_CLIENT_SECRET environment variable is missing"),
+    redirect_uri: System.get_env("GITHUB_REDIRECT_URI") || "https://#{host}/auth/user/github/callback"
+  
+  # GitHub admin configuration for production
+  config :ehs_enforcement, :github_admin,
+    owner: System.get_env("GITHUB_REPO_OWNER"),
+    repo: System.get_env("GITHUB_REPO_NAME"),
+    access_token: System.get_env("GITHUB_ACCESS_TOKEN"),
+    allowed_users: System.get_env("GITHUB_ALLOWED_USERS", "") |> String.split(",") |> Enum.map(&String.trim/1)
+  
+  # Token signing secret for production
+  config :ehs_enforcement, :token_signing_secret,
+    System.get_env("TOKEN_SIGNING_SECRET") || raise("TOKEN_SIGNING_SECRET environment variable is missing")
 
   # ## SSL Support
   #

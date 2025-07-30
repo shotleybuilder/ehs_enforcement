@@ -72,7 +72,8 @@ config :ehs_enforcement, EhsEnforcement.Repo,
 # Ash domain configuration
 config :ehs_enforcement, ash_domains: [
   EhsEnforcement.Enforcement,
-  EhsEnforcement.Sync
+  EhsEnforcement.Sync,
+  EhsEnforcement.Accounts
 ]
 
 # Import environment specific config. This must remain at the bottom

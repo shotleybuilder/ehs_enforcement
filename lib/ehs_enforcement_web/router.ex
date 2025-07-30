@@ -1,6 +1,7 @@
 defmodule EhsEnforcementWeb.Router do
   use EhsEnforcementWeb, :router
-
+  use AshAuthentication.Phoenix.Router
+  
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -8,12 +9,34 @@ defmodule EhsEnforcementWeb.Router do
     plug :put_root_layout, html: {EhsEnforcementWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :load_from_session
+  end
+  
+  pipeline :auth_required do
+    plug EhsEnforcementWeb.Plugs.AuthHelpers, :require_authenticated_user
+  end
+  
+  pipeline :admin_required do
+    plug EhsEnforcementWeb.Plugs.AuthHelpers, :require_authenticated_user
+    plug EhsEnforcementWeb.Plugs.AuthHelpers, :require_admin_user
   end
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug :load_from_bearer
   end
-
+  
+  # Authentication routes
+  scope "/", EhsEnforcementWeb do
+    pipe_through :browser
+    
+    sign_in_route()
+    sign_out_route AuthController
+    auth_routes_for EhsEnforcement.Accounts.User, to: AuthController
+    reset_route []
+  end
+  
+  # Public routes - no authentication required
   scope "/", EhsEnforcementWeb do
     pipe_through :browser
 
@@ -21,22 +44,33 @@ defmodule EhsEnforcementWeb.Router do
     live "/", DashboardLive, :index
     live "/dashboard", DashboardLive, :index
     
-    # Case Management Routes
+    # Read-only Case Management Routes
     live "/cases", CaseLive.Index, :index
+    live "/cases/:id", CaseLive.Show, :show
     get "/cases/export.csv", CaseController, :export_csv
     get "/cases/export.xlsx", CaseController, :export_excel
     get "/cases/export_detailed.csv", CaseController, :export_detailed_csv
-    live "/cases/new", CaseLive.Form, :new
-    live "/cases/:id", CaseLive.Show, :show
-    live "/cases/:id/edit", CaseLive.Form, :edit
     
-    # Notice Management Routes
+    # Read-only Notice Management Routes
     live "/notices", NoticeLive.Index, :index
     live "/notices/:id", NoticeLive.Show, :show
     
-    # Offender Management Routes
+    # Read-only Offender Management Routes
     live "/offenders", OffenderLive.Index, :index
     live "/offenders/:id", OffenderLive.Show, :show
+  end
+  
+  # Admin-only routes - require authentication and admin privileges
+  scope "/", EhsEnforcementWeb do
+    pipe_through [:browser, :admin_required]
+    
+    # Admin Case Management Routes  
+    live "/cases/new", CaseLive.Form, :new
+    live "/cases/:id/edit", CaseLive.Form, :edit
+    
+    # Admin Notice Management Routes
+    live "/notices/new", NoticeLive.Form, :new
+    live "/notices/:id/edit", NoticeLive.Form, :edit
   end
 
   # Other scopes may use custom stacks.

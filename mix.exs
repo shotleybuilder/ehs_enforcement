@@ -75,7 +75,12 @@ defmodule EhsEnforcement.MixProject do
       {:csv, "~> 3.0"},
       {:number, "~> 1.0"},
       {:ex_prompt, "~> 0.2.0"},
-      {:dotenv, "~> 3.1.0", only: [:dev, :test]}
+      {:dotenv, "~> 3.1.0", only: [:dev, :test]},
+      # Ash Authentication
+      {:ash_authentication, "~> 4.0"},
+      {:ash_authentication_phoenix, "~> 2.0"},
+      # SAT solver for Ash policies
+      {:picosat_elixir, "~> 0.2"}
     ]
   end
 
