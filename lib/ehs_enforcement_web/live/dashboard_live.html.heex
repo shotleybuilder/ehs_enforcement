@@ -11,6 +11,23 @@
         </p>
       </div>
       <div class="mt-4 flex md:ml-4 md:mt-0">
+        <!-- User authentication status -->
+        <div class="mr-3 flex items-center">
+          <%= if @current_user do %>
+            <div class="flex items-center space-x-2">
+              <span class="text-sm text-gray-600">Welcome, <%= @current_user.name %></span>
+              <%= if @current_user.is_admin do %>
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                  ADMIN
+                </span>
+              <% end %>
+              <a href="/sign-out" class="text-sm text-gray-500 hover:text-gray-700">Sign Out</a>
+            </div>
+          <% else %>
+            <a href="/sign-in" class="text-sm text-indigo-600 hover:text-indigo-500">Sign In</a>
+          <% end %>
+        </div>
+        
         <div class="mr-3">
           <select
             phx-change="change_time_period"
@@ -142,48 +159,10 @@
     <!-- Dashboard Action Cards -->
     <.dashboard_card_grid>
       <!-- Cases Management Card -->
-      <.dashboard_action_card title="ENFORCEMENT CASES" icon="📁" theme="blue">
-        <:metrics>
-          <.metric_item label="Total Cases" value={to_string(@stats.total_cases)} />
-          <.metric_item label="Recent Cases" value={to_string(@stats.recent_cases)} sublabel="Last 30 Days" />
-          <.metric_item label="Total Fines" value={"£#{Decimal.to_string(@stats.total_fines, :normal)}"} />
-        </:metrics>
-        <:actions>
-          <.card_action_button phx-click="browse_recent_cases">
-            > Browse Recent
-          </.card_action_button>
-          <.card_secondary_button phx-click="search_cases">
-            > Search Cases
-          </.card_secondary_button>
-        </:actions>
-        <:admin_actions visible={false}>
-          <.card_secondary_button admin_only={true} disabled={true}>
-            [ADMIN] > Add New Case
-          </.card_secondary_button>
-        </:admin_actions>
-      </.dashboard_action_card>
+      <.cases_action_card current_user={@current_user} />
 
       <!-- Notices Management Card -->
-      <.dashboard_action_card title="ENFORCEMENT NOTICES" icon="🔔" theme="yellow">
-        <:metrics>
-          <.metric_item label="Total Notices" value={to_string(@stats.total_notices)} />
-          <.metric_item label="Recent Notices" value={to_string(@stats.recent_notices)} sublabel="Last 30 Days" />
-          <.metric_item label="Compliance Required" value="3" />
-        </:metrics>
-        <:actions>
-          <.card_action_button phx-click="browse_active_notices">
-            > Browse Active
-          </.card_action_button>
-          <.card_secondary_button phx-click="search_notices">
-            > Search Database
-          </.card_secondary_button>
-        </:actions>
-        <:admin_actions visible={false}>
-          <.card_secondary_button admin_only={true} disabled={true}>
-            [ADMIN] > Add New Notice
-          </.card_secondary_button>
-        </:admin_actions>
-      </.dashboard_action_card>
+      <.notices_action_card current_user={@current_user} />
 
       <!-- Offenders Database Card -->
       <.dashboard_action_card title="OFFENDER DATABASE" icon="👥" theme="purple">

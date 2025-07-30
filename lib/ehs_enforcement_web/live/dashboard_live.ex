@@ -5,11 +5,17 @@ defmodule EhsEnforcementWeb.DashboardLive do
   # alias EhsEnforcement.Enforcement.RecentActivity  # Unused alias removed
   alias EhsEnforcement.Sync.SyncManager
   alias Phoenix.PubSub
+  
+  import EhsEnforcementWeb.Components.CasesActionCard
+  import EhsEnforcementWeb.Components.NoticesActionCard
 
   @default_recent_activity_page_size 10
 
   @impl true
   def mount(_params, _session, socket) do
+    # Current user will be loaded by the browser pipeline and available in socket.assigns
+    # This follows the same pattern as other LiveViews in the application
+    
     # Subscribe to real-time updates
     PubSub.subscribe(EhsEnforcement.PubSub, "sync:updates")
     PubSub.subscribe(EhsEnforcement.PubSub, "agency:updates")
@@ -187,6 +193,62 @@ defmodule EhsEnforcementWeb.DashboardLive do
     # In a real implementation, this would generate and download the file
     # For now, we'll just send a flash message
     {:noreply, put_flash(socket, :info, "Export to #{format} started")}
+  end
+
+  @impl true
+  def handle_event("browse_recent_cases", _params, socket) do
+    {:noreply, push_navigate(socket, to: "/cases?filter=recent&page=1")}
+  end
+
+  @impl true
+  def handle_event("search_cases", _params, socket) do
+    {:noreply, push_navigate(socket, to: "/cases?filter=search")}  
+  end
+
+  @impl true
+  def handle_event("add_new_case", _params, socket) do
+    current_user = socket.assigns[:current_user]
+    
+    # Check admin privileges
+    case current_user do
+      %{is_admin: true} ->
+        {:noreply, push_navigate(socket, to: "/cases/new")}
+      _ ->
+        {:noreply, put_flash(socket, :error, "Admin privileges required to create new cases")}
+    end
+  end
+
+  @impl true
+  def handle_event("browse_active_notices", _params, socket) do
+    {:noreply, push_navigate(socket, to: "/notices?filter=active&page=1")}
+  end
+
+  @impl true
+  def handle_event("search_notices", _params, socket) do
+    {:noreply, push_navigate(socket, to: "/notices?filter=search")}  
+  end
+
+  @impl true
+  def handle_event("add_new_notice", _params, socket) do
+    current_user = socket.assigns[:current_user]
+    
+    # Check admin privileges
+    case current_user do
+      %{is_admin: true} ->
+        {:noreply, push_navigate(socket, to: "/notices/new")}
+      _ ->
+        {:noreply, put_flash(socket, :error, "Admin privileges required to create new notices")}
+    end
+  end
+
+  @impl true
+  def handle_event("navigate_to_new_case", _params, socket) do
+    {:noreply, push_navigate(socket, to: "/cases/new")}
+  end
+
+  @impl true
+  def handle_event("navigate_to_new_notice", _params, socket) do
+    {:noreply, push_navigate(socket, to: "/notices/new")}
   end
 
   @impl true
